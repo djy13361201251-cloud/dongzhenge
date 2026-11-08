@@ -167,14 +167,25 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border-width:3px}
 .pop{position:static;width:auto;max-height:none;overflow:visible;background:none;
   box-shadow:none;border-radius:0}
 
-/* 弹窗内的素材选择行 */
+/* 弹窗内的素材选择行：正方形用 padding-top 撑，Chrome 61 没有 aspect-ratio */
 .popimgs{display:grid;grid-template-columns:repeat(4,1fr);grid-gap:8px;margin-top:8px}
-.pimg{width:100%;aspect-ratio:1;border:0;border-radius:12px;padding:0;cursor:pointer;
+.pimgwrap{position:relative;display:block;min-width:0;padding-top:100%}
+.pimgwrap > .pimg{position:absolute;left:0;top:0;width:100%;height:100%}
+.pimg{width:100%;border:0;border-radius:12px;padding:0;cursor:pointer;box-sizing:border-box;
   background-size:cover;background-position:center;background-color:var(--hover);
   box-shadow:inset 0 0 0 1px rgba(0,0,0,.07)}
 .pimg[aria-pressed="true"]{box-shadow:0 0 0 2px var(--ink)}
 .pimg.none{display:flex;align-items:center;justify-content:center;font-size:11px;
   color:var(--muted);background:var(--hover);border:1px dashed var(--hair2)}
+.pimg.vid::before{content:"";position:absolute;left:6px;bottom:6px;width:0;height:0;
+  border-left:9px solid #fff;border-top:6px solid transparent;border-bottom:6px solid transparent;
+  filter:drop-shadow(0 1px 2px rgba(0,0,0,.4))}
+.pimgdel{position:absolute;right:-5px;top:-5px;width:17px;height:17px;border-radius:50%;border:0;
+  background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;padding:0;opacity:0;transform:scale(.7);
+  transition:opacity .16s,transform .18s var(--spring);box-shadow:0 2px 6px rgba(0,0,0,.28);z-index:2}
+.pimgwrap:hover .pimgdel,.pimgwrap:focus-within .pimgdel{opacity:1;transform:scale(1)}
+.pimgdel:hover{background:#000}
 
 /* 色卡：色彩库 3 列更宽松；我的色卡用弹性列避免被压扁 */
 #presets{grid-template-columns:repeat(3,1fr)!important;grid-gap:10px}
@@ -207,7 +218,9 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border-width:3px}
 
 /* 缩略图列表 */
 .gallery{display:grid;grid-template-columns:repeat(5,1fr);grid-gap:8px;margin:0 0 10px 0;width:100%;box-sizing:border-box}
-.gitem{width:100%;aspect-ratio:1;box-sizing:border-box;border:0;border-radius:14px;padding:0;cursor:pointer;background-size:cover;background-position:center;
+.gwrap{position:relative;display:block;min-width:0;padding-top:100%}
+.gwrap .gitem{position:absolute;left:0;top:0;height:100%}
+.gitem{width:100%;box-sizing:border-box;border:0;border-radius:14px;padding:0;cursor:pointer;background-size:cover;background-position:center;
   background-color:var(--hover);transition:transform .3s var(--spring),box-shadow .2s;position:relative}
 .gitem:hover{transform:translateY(-2px)}
 .gitem[aria-pressed="true"]{box-shadow:0 0 0 2px var(--ink)}

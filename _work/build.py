@@ -963,6 +963,14 @@ js = must("catch(e){st.textContent='保存失败：'+(e.message||e.code)}};",
           "catch(e){st.textContent='保存失败：'+(e.message||e.code||'未知原因')+'（需在 App 内打开）'}};",
           js, 'save hint')
 
+# ------------------------------------------------------------ 格子平等化 / 素材按 id 绑定
+from cellfix import apply as cellfix_apply
+js = cellfix_apply(js, must, fail)
+# 不再有主视觉：heroKind 恒定，标题格的行为对所有格子一致
+js = must("function heroKind(){if(S.hero==='bowls') S.hero='type'; if(S.hero==='image') return IMG?'image':'type'; if(S.hero!=='auto') return S.hero; return HEROES_AUTO[S.seed%HEROES_AUTO.length]}",
+          "function heroKind(){return 'type'}   // 主视觉格已取消，所有格子平等",
+          js, 'heroKind constant')
+
 for bad, label in ((r'\beval\s*\(', 'eval'), (r'new\s+Function\s*\(', 'new Function'),
                    (r'\bfetch\s*\(', 'fetch'), (r'XMLHttpRequest', 'XHR'),
                    (r'requestFullscreen', 'fullscreen'), (r'new\s+Worker\s*\(', 'Worker'),
@@ -1015,7 +1023,9 @@ NEW_IMG_GRP = ('<div class="grp"><span class="lbl">上传素材<small>照片与�
                '<input type="file" id="fileall" accept="image/png,image/jpeg,image/webp,video/mp4,video/quicktime,video/webm,video/x-m4v" multiple hidden>'
                '<input type="file" id="file" accept="image/png,image/jpeg,image/webp" multiple hidden>'
                '<input type="file" id="filev" accept="video/mp4,video/quicktime,video/webm,video/x-m4v" multiple hidden>'
-               '<button class="btn sm" id="clear" type="button" hidden>清空</button></div></div>')
+               '<button class="btn sm" id="clear" type="button" hidden>清空</button>'
+               '<button class="btn sm" id="lockAll" type="button" hidden>全部锁定</button></div>'
+               '<p class="hint" id="assetMsg"></p></div>')
 if OLD_IMG_GRP not in body_html:
     fail('image group markup not found')
 body_html = body_html.replace(OLD_IMG_GRP, '')
