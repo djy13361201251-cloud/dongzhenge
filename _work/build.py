@@ -977,6 +977,8 @@ js = must("catch(e){st.textContent='保存失败：'+(e.message||e.code)}};",
 # ------------------------------------------------------------ 格子平等化 / 素材按 id 绑定
 from cellfix import apply as cellfix_apply
 js = cellfix_apply(js, must, fail)
+from mobilefix import apply as mobile_apply, fix_markup
+js = mobile_apply(js, must, fail)
 # 不再有主视觉：heroKind 恒定，标题格的行为对所有格子一致
 js = must("function heroKind(){if(S.hero==='bowls') S.hero='type'; if(S.hero==='image') return IMG?'image':'type'; if(S.hero!=='auto') return S.hero; return HEROES_AUTO[S.seed%HEROES_AUTO.length]}",
           "function heroKind(){return 'type'}   // 主视觉格已取消，所有格子平等",
@@ -1225,6 +1227,8 @@ body_html = body_html.replace(
     '<button class="btn" id="png" type="button">导出 PNG</button>')
 if 'id="fs"' not in body_html:
     fail('fullscreen button not injected')
+
+body_html = fix_markup(body_html, fail)
 
 html = (
     '<!DOCTYPE html>\n<html lang="zh-CN">\n<head>\n'

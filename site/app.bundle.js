@@ -1,3 +1,4 @@
+try{if((window.xhs&&window.xhs.miniTool)||/xhs|xiaohongshu|discover\//i.test(navigator.userAgent))document.documentElement.className+=' in-xhs'}catch(e){}
 
 // ---- tiny MP4 muxer for one H.264 track from WebCodecs (avc format), fast-start (moov before mdat) ----
 window.MiniMP4=(function(){
@@ -1391,15 +1392,36 @@ function applyGallery(i){
   if($('assetMsg')) $('assetMsg').textContent='先在画面里点一个格子，再点素材。';
   renderGallery();
 }
+var IMG_MAX=2048;
+// 画到 canvas 上缩放，返回 {src,img}
+function shrinkTo(source,w,h,type,cb){
+  var k=Math.min(1,IMG_MAX/Math.max(w,h));
+  var c=document.createElement('canvas'); c.width=Math.max(1,Math.round(w*k)); c.height=Math.max(1,Math.round(h*k));
+  try{ c.getContext('2d').drawImage(source,0,0,c.width,c.height) }catch(e){ return cb(new Error('图片解码失败')) }
+  var src; try{ src=c.toDataURL(type==='image/png'?'image/png':'image/jpeg',0.9) }catch(e){ return cb(new Error('图片解码失败')) }
+  var im=new Image();
+  im.onload=function(){ cb(null,{src:src,img:im}) };
+  im.onerror=function(){ cb(new Error('图片解码失败')) };
+  im.src=src;
+}
 function readImageFile(f, cb){
   var r=new FileReader();
+  function viaBitmap(){
+    if(typeof createImageBitmap!=='function') return cb(new Error('格式不支持'));
+    createImageBitmap(f).then(function(bm){ shrinkTo(bm,bm.width,bm.height,'image/jpeg',cb) },
+                              function(){ cb(new Error('格式不支持')) });
+  }
   r.onload=function(){
     var im=new Image();
-    im.onload=function(){cb(null,{src:r.result,img:im})};
-    im.onerror=function(){cb(new Error('图片解码失败'))};
+    im.onload=function(){
+      var w=im.naturalWidth||im.width, h=im.naturalHeight||im.height;
+      if(Math.max(w,h)<=IMG_MAX) return cb(null,{src:r.result,img:im});
+      shrinkTo(im,w,h,f.type,cb);
+    };
+    im.onerror=viaBitmap;
     im.src=r.result;
   };
-  r.onerror=function(){cb(new Error('文件读取失败'))};
+  r.onerror=function(){ cb(new Error('文件读取失败')) };
   r.readAsDataURL(f);
 }
 
@@ -1502,6 +1524,8 @@ function onPick(ev){
   var input=ev&&ev.target?ev.target:$('file');
   var fs=[].slice.call(input.files||[]); if(!fs.length) return;
   var results=[], pending=fs.length, failed=[];
+  function say(t){ st.textContent=t; var a=$('assetMsg'); if(a) a.textContent=t; if(input.id==='popFileAll'){ var p=$('popHint'); if(p) p.textContent=t } }
+  say('正在读取 '+fs.length+' 个文件…');
   fs.forEach(function(f,i){
     var isVideo=(f.type&&/^video\//.test(f.type))||/\.(mp4|mov|webm|m4v)$/i.test(f.name);
     function handle(err,item){
@@ -1518,13 +1542,13 @@ function onPick(ev){
   function finish(){
     results.sort(function(a,b){return a.order-b.order});
     if(!results.length){
-      st.textContent='没能读取这些文件'+(failed.length?'：'+failed.join('、'):'');
+      say('没能读取这些文件'+(failed.length?'：'+failed.join('、'):'')+'。请换 JPG / PNG 图片或 MP4 视频再试。');
       input.value=''; return;
     }
     results.forEach(function(g){ g.id='a'+(++ASSET_SEQ); syncAsset(g) });
     GALLERY=GALLERY.concat(results).slice(-12);
     // 素材面板只入库；格子面板上传才贴到当前这一格
-    st.textContent=failed.length?('有 '+failed.length+' 个文件读不了：'+failed.join('、')):'';
+    say(failed.length?('已添加 '+results.length+' 个，有 '+failed.length+' 个读不了：'+failed.join('、')):('已添加 '+results.length+' 个素材。'+(input.id==='popFileAll'?'':'点画面里的格子即可放进去。')));
     if(input.id==='popFileAll' && SEL>=0 && results.length) bindCellAsset(SEL, results[0]);
     input.value='';
     renderGallery();

@@ -40,7 +40,7 @@
       <aside class="cell insp">
         <div class="inspview" id="inspPop" hidden>
           <div class="pophead"><button class="popback" id="popBack" type="button">← 整张海报</button><span id="popTitle">格子</span><button class="x" id="popClose" type="button" aria-label="关闭">×</button></div>
-          <label class="f">这一格放什么<select id="popType"></select></label><div class="grp" id="popImgRow" hidden><span class="lbl">用哪个素材</span><div class="popimgs" id="popImgList"></div><div class="row" style="margin-top:8px"><label class="btn sm" for="popFileAll">上传素材</label><input type="file" id="popFileAll" accept="image/png,image/jpeg,image/webp,video/mp4,video/quicktime,video/webm,video/x-m4v" multiple hidden></div></div>
+          <label class="f">这一格放什么<select id="popType"></select></label><div class="grp" id="popImgRow" hidden><span class="lbl">用哪个素材</span><div class="popimgs" id="popImgList"></div><div class="row" style="margin-top:8px"><label class="btn sm filebtn">上传素材<input type="file" id="popFileAll" accept="image/*,video/*" multiple class="fileov"></label></div></div>
           <div class="popfields" id="popText" hidden>
             <div class="grp"><span class="lbl">对齐</span><div class="seg" id="popAlign"><button type="button" data-v="">自动</button><button type="button" data-v="l">左</button><button type="button" data-v="c">中</button><button type="button" data-v="r">右</button></div></div>
             <div class="grp"><span class="lbl">字号</span><div class="seg" id="popSize"><button type="button" data-v="1">小</button><button type="button" data-v="0">标准</button><button type="button" data-v="-1">大</button></div></div>
@@ -87,13 +87,13 @@
           <div class="grp"><span class="lbl">色彩库</span><div class="lib" id="presets"></div></div>
           <div class="grp"><span class="lbl">导入色卡</span>
               <div class="row" style="flex-wrap:nowrap"><input type="text" id="impText" placeholder="粘贴色号或 coolors 链接" aria-label="粘贴色号"><button class="btn sm" id="impGo" type="button">导入</button></div>
-              <div class="row"><label class="btn sm" for="impImg">从图片取色</label><input type="file" id="impImg" accept="image/*" hidden><span class="hint" id="impMsg"></span></div>
+              <div class="row"><label class="btn sm filebtn">从图片取色<input type="file" id="impImg" accept="image/*" class="fileov"></label><span class="hint" id="impMsg"></span></div>
             </div>
           <div class="grp"><span class="lbl">文字色</span><div class="colors" id="colors"></div></div>
         </div>
-        <div class="pane" id="p-assets" hidden><div class="grp"><span class="lbl">上传素材<small>照片与视频可混选</small></span><div class="gallery" id="gallery" hidden></div><div class="row"><img class="thumb" id="thumb" alt="" hidden><label class="btn sm" for="fileall" data-kind="all">上传图片或视频</label><input type="file" id="fileall" accept="image/png,image/jpeg,image/webp,video/mp4,video/quicktime,video/webm,video/x-m4v" multiple hidden><input type="file" id="file" accept="image/png,image/jpeg,image/webp" multiple hidden><input type="file" id="filev" accept="video/mp4,video/quicktime,video/webm,video/x-m4v" multiple hidden><button class="btn sm" id="clear" type="button" hidden>清空</button><button class="btn sm" id="lockAll" type="button" hidden>全部锁定</button></div><p class="hint" id="assetMsg"></p></div></div>
+        <div class="pane" id="p-assets" hidden><div class="grp"><span class="lbl">上传素材<small>照片与视频可混选</small></span><div class="gallery" id="gallery" hidden></div><div class="row"><img class="thumb" id="thumb" alt="" hidden><label class="btn sm filebtn" data-kind="all">上传图片或视频<input type="file" id="fileall" accept="image/*,video/*" multiple class="fileov"></label><input type="file" id="file" accept="image/png,image/jpeg,image/webp" multiple hidden><input type="file" id="filev" accept="video/mp4,video/quicktime,video/webm,video/x-m4v" multiple hidden><button class="btn sm" id="clear" type="button" hidden>清空</button><button class="btn sm" id="lockAll" type="button" hidden>全部锁定</button></div><p class="hint" id="assetMsg"></p></div></div>
         <div class="pane" id="p-text" hidden>
-          <div class="grp"><span class="lbl">字体<small>上传 ttf / otf / woff</small></span><div class="fontlist" id="fontList"></div><div class="row"><label class="btn sm" for="fontFile">上传字体</label><input type="file" id="fontFile" accept=".ttf,.otf,.woff,.woff2,font/ttf,font/otf,font/woff,font/woff2" hidden><span class="hint" id="fontMsg"></span></div></div>
+          <div class="grp"><span class="lbl">字体<small>上传 ttf / otf / woff</small></span><div class="fontlist" id="fontList"></div><div class="row"><label class="btn sm filebtn">上传字体<input type="file" id="fontFile" accept=".ttf,.otf,.woff,.woff2,font/ttf,font/otf,font/woff,font/woff2" class="fileov"></label><span class="hint" id="fontMsg"></span></div></div>
           
           <div class="grp"><span class="lbl">画面里的文字<small>按格子从上到下</small></span><div class="txlist" id="txlist"></div></div>
           <div class="grp"><span class="lbl">整套替换<small>没单独改过的格子跟着变</small></span><label class="f lv-s">标题<textarea id="t-title" rows="2"></textarea></label>

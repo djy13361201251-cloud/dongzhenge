@@ -259,6 +259,27 @@ body.stageonly #fs:hover{background:rgba(255,255,255,.26)}
   padding-bottom:24px;-webkit-overflow-scrolling:touch}
 #paneWrap > .pane::after{content:"";display:block;height:8px}
 .side{overflow:hidden}
+
+/* 上传按钮：透明 input 铺满按钮，手指点到的就是 input 本身 */
+.filebtn{position:relative;overflow:hidden;cursor:pointer}
+.fileov{position:absolute;left:0;top:0;width:100%;height:100%;margin:0!important;padding:0;
+  opacity:0;cursor:pointer;font-size:0;z-index:1}
+
+/* ===== 手机端 ===== */
+html,body{overflow-x:hidden}
+@media (max-width:640px){
+  /* 顶栏：品牌一行，三个操作等分一行，不再横向溢出 */
+  .top{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-gap:8px;
+    align-items:center;padding:0;min-height:0}
+  .top > *{margin:0!important}
+  .top .brand{grid-column:1 / -1;height:40px}
+  .top #fs,.top #png,.top #mp4{width:100%;min-width:0;height:40px;padding-left:8px;padding-right:8px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;justify-content:center}
+  /* 底部让出 Home 指示条 */
+  .app{padding-bottom:24px;padding-bottom:calc(24px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)))!important}
+}
+/* 小红书容器：顶部让出状态栏 + 导航胶囊（返回 / 分享 / 更多） */
+.in-xhs .app{padding-top:56px;padding-top:calc(48px + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)))!important}
 """
 
 
