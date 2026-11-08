@@ -1,0 +1,45 @@
+/* Chrome 61 基线层：替代 flex gap / :focus-visible / min() / max() / inset / 逻辑属性 */
+.app > * + *{margin-top:var(--gap);}
+.top > * + *{margin-left:12px;}
+.brand > * + *{margin-left:12px;}
+.side > * + *{margin-top:var(--gap);}
+.dock{margin-top:-8px;margin-left:-12px;}
+.dock > *{margin-top:8px;margin-left:12px;}
+.dock .scrubw > * + *{margin-left:12px;}
+.btn > * + *{margin-left:8px;}
+.btn:focus, .seg button:focus, input:focus, textarea:focus, select:focus, .sw:focus, .tabs button:focus, .drawbtn:focus{outline:2px solid var(--ink);outline-offset:2px;}
+.toggle > * + *{margin-left:8px;}
+.drawc > * + *{margin-top:12px;}
+.drawbtn .dt > * + *{margin-top:4px;}
+.drawrow > * + *{margin-left:8px;}
+.result > * + *{margin-left:8px;}
+.grp > * + *{margin-top:8px;}
+.lbl > * + *{margin-left:8px;}
+.seg button > * + *{margin-top:8px;}
+.mini > * + *{margin-top:4px;}
+.colors label > * + *{margin-left:8px;}
+label.f > * + *{margin-top:8px;}
+.row{margin-top:-8px;margin-left:-8px;}
+.row > *{margin-top:8px;margin-left:8px;}
+.badge > * + *{margin-left:8px;}
+.pop > * + *{margin-top:12px;}
+.popfields > * + *{margin-top:8px;}
+.seg.vis button > * + *{margin-left:8px;}
+.txlist > * + *{margin-top:8px;}
+.txc > * + *{margin-top:8px;}
+.txh > * + *{margin-left:8px;}
+@media (min-width:1001px) and (max-height:820px){.drawc > * + *{margin-top:8px;}}
+.fontlist{margin-top:-8px;margin-left:-8px;}
+.fontlist > *{margin-top:8px;margin-left:8px;}
+#p-assets .row > * + *{margin-left:8px;}
+.inspview > * + *{margin-top:12px;}
+.inspview .pophead > * + *{margin-left:12px;}
+.brand > .mark{margin-right:12px;}
+.toggle > input[type=checkbox]{margin-right:8px;}
+.colors label > input[type=color]{margin-right:8px;}
+.result > b{margin-right:8px;}
+.lbl > small{margin-left:8px;}
+.seg button > svg{margin-bottom:8px;}
+.btn > svg{margin-right:8px;}
+.f > input, .f > select, .f > textarea{margin-top:8px;}
+.lvf > input, .lvf > textarea{margin-top:4px;}

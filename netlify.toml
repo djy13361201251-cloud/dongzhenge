@@ -1,0 +1,9 @@
+# Netlify：直接发布 site/ 目录（构建产物已提交，无需在线构建）
+[build]
+  publish = "site"
+  command = ""
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

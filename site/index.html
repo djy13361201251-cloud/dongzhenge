@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>动真格</title>
+<link rel="stylesheet" href="./style.css" />
+<link rel="stylesheet" href="./compat.css" />
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div class="brand"><span class="mark" id="mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>动真格</div>
+    <p class="status" id="status">1080p · 60 帧</p>
+    <div class="prog"><span id="prog"></span></div>
+    <button class="btn" id="tool" type="button" hidden>存到相册</button><button class="btn" id="fs" type="button" aria-pressed="false">全屏演示</button><button class="btn" id="png" type="button">导出 PNG</button>
+    <button class="btn ink" id="mp4" type="button">导出 MP4</button>
+  </div>
+  <div class="main">
+    <section class="cell desk">
+      <div class="stage"><canvas id="cv" width="1080" height="1920" aria-label="动态海报预览"></canvas>
+        <div class="badge" id="draw" aria-live="polite" hidden><b id="dTier"></b><span id="dName"></span></div>
+        <div class="ov" id="ov"><div class="selbox" id="selbox" hidden></div><div class="hovbox" id="hovbox" hidden></div></div>
+        </div>
+      <div class="dock">
+        <div class="scrubw"><button class="btn icon" id="play" type="button" aria-label="暂停">❚❚</button><input type="range" id="scrub" min="0" max="1000" value="0" aria-label="时间轴"><span class="time" id="time">0.0s</span></div>
+        <p class="editHint" id="editHint">点任意一格可以换板式、改字、换色、交换或锁定；拖格子之间的缝可以调大小。</p>
+      </div>
+    </section>
+    <div class="side">
+      <section class="cell drawc">
+        <button class="drawbtn" id="rand" type="button"><span class="dt"><b>抽一张</b><kbd>空格</kbd></span><span class="strip" id="strip" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span></button>
+        <div class="drawrow">
+          <button class="btn icon" id="undo" type="button" disabled aria-label="撤销" title="撤销"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
+          <button class="btn" id="relay" type="button">换排列</button>
+          <label class="toggle"><input type="checkbox" id="keepPal">锁配色</label>
+        </div>
+        <p class="result" id="result"></p>
+      </section>
+      <aside class="cell insp">
+        <div class="inspview" id="inspPop" hidden>
+          <div class="pophead"><button class="popback" id="popBack" type="button">← 整张海报</button><span id="popTitle">格子</span><button class="x" id="popClose" type="button" aria-label="关闭">×</button></div>
+          <label class="f">这一格放什么<select id="popType"></select></label><div class="grp" id="popImgRow" hidden><span class="lbl">用哪个素材</span><div class="popimgs" id="popImgList"></div><div class="row" style="margin-top:8px"><label class="btn sm" for="popFileAll">上传素材</label><input type="file" id="popFileAll" accept="image/png,image/jpeg,image/webp,video/mp4,video/quicktime,video/webm,video/x-m4v" multiple hidden></div></div>
+          <div class="popfields" id="popText" hidden>
+            <div class="grp"><span class="lbl">对齐</span><div class="seg" id="popAlign"><button type="button" data-v="">自动</button><button type="button" data-v="l">左</button><button type="button" data-v="c">中</button><button type="button" data-v="r">右</button></div></div>
+            <div class="grp"><span class="lbl">字号</span><div class="seg" id="popSize"><button type="button" data-v="1">小</button><button type="button" data-v="0">标准</button><button type="button" data-v="-1">大</button></div></div>
+            <div class="popfields" id="popFields"></div>
+          </div>
+          <div class="grp"><span class="lbl">颜色</span><div class="popcols" id="popCols"></div></div>
+          <div class="popacts">
+            <button class="btn sm" id="popLock" type="button">锁定</button>
+            <button class="btn sm" id="popNext" type="button">随机换</button>
+            <button class="btn sm" id="popSwap" type="button">交换位置</button>
+            <button class="btn sm" id="popReset" type="button">还原</button>
+          </div>
+          <p class="hint" id="popHint"></p>
+        </div>
+        <div id="paneWrap">
+        <div class="tabs" role="tablist" id="tabs">
+          <button type="button" role="tab" data-p="p-layout" aria-selected="true">版式</button>
+          <button type="button" role="tab" data-p="p-color">配色</button>
+          <button type="button" role="tab" data-p="p-text">文案</button><button type="button" role="tab" data-p="p-assets">素材</button>
+          
+        </div>
+        <div class="pane" id="p-layout">
+          <div class="grp"><span class="lbl">风格</span><div class="seg vis" id="style">
+            <button type="button" data-v="cute"><svg viewBox="0 0 40 26"><rect x="0" y="0" width="22" height="26" rx="8"/><rect x="25" y="0" width="15" height="11" rx="5.5"/><rect x="25" y="14" width="15" height="12" rx="6"/></svg>可爱</button>
+            <button type="button" data-v="spec"><svg viewBox="0 0 40 26"><rect x="0" y="0" width="22" height="26" rx="1"/><rect x="25" y="0" width="15" height="11" rx="1"/><rect x="25" y="14" width="15" height="12" rx="1"/></svg>规整</button>
+            <button type="button" data-v="chaos"><svg viewBox="0 0 40 26"><rect x="1" y="2" width="19" height="22" rx="4" transform="rotate(-7 10 13)"/><circle cx="32" cy="7" r="6"/><rect x="24" y="15" width="15" height="10" rx="2" transform="rotate(9 31 20)"/></svg>混乱</button>
+          </div></div>
+          <div class="grp"><span class="lbl">画幅</span><div class="seg vis" id="aspect"></div></div>
+          
+          <div class="grp"><span class="lbl">格子与比例</span><div class="sliders" id="sliders"></div></div>
+                  <div class="grp"><span class="lbl">动画</span><label class="toggle"><input type="checkbox" id="shuffle" checked>中途重新排列一次</label>
+          <div class="sliders">
+            <div class="mini"><span>时长<output id="o-dur">9s</output></span><input type="range" id="dur" min="5" max="15" step="1" value="9"></div>
+            <div class="mini"><span>颗粒<output id="o-grain">50</output></span><input type="range" id="grain" min="0" max="100" value="50"></div>
+          </div>
+          </div>
+        </div>
+        <div class="pane" id="p-color" hidden>
+          <div class="grp"><span class="lbl">自选五色</span>
+            <div class="five" id="five"></div>
+            <div class="row"><button class="btn sm" id="fShuffle" type="button">换底色</button><button class="btn sm" id="fSave" type="button">存进我的色卡</button></div>
+          </div>
+          <div class="grp" id="mineGrp" hidden><span class="lbl">我的色卡</span><div class="lib" id="mine"></div></div>
+          <div class="grp"><span class="lbl">色彩库</span><div class="lib" id="presets"></div></div>
+          <div class="grp"><span class="lbl">导入色卡</span>
+              <div class="row" style="flex-wrap:nowrap"><input type="text" id="impText" placeholder="粘贴色号或 coolors 链接" aria-label="粘贴色号"><button class="btn sm" id="impGo" type="button">导入</button></div>
+              <div class="row"><label class="btn sm" for="impImg">从图片取色</label><input type="file" id="impImg" accept="image/*" hidden><span class="hint" id="impMsg"></span></div>
+            </div>
+          <div class="grp"><span class="lbl">文字色</span><div class="colors" id="colors"></div></div>
+        </div>
+        <div class="pane" id="p-assets" hidden><div class="grp"><span class="lbl">上传素材<small>照片与视频可混选</small></span><div class="gallery" id="gallery" hidden></div><div class="row"><img class="thumb" id="thumb" alt="" hidden><label class="btn sm" for="fileall" data-kind="all">上传图片或视频</label><input type="file" id="fileall" accept="image/png,image/jpeg,image/webp,video/mp4,video/quicktime,video/webm,video/x-m4v" multiple hidden><input type="file" id="file" accept="image/png,image/jpeg,image/webp" multiple hidden><input type="file" id="filev" accept="video/mp4,video/quicktime,video/webm,video/x-m4v" multiple hidden><button class="btn sm" id="clear" type="button" hidden>清空</button><button class="btn sm" id="lockAll" type="button" hidden>全部锁定</button></div><p class="hint" id="assetMsg"></p></div></div>
+        <div class="pane" id="p-text" hidden>
+          <div class="grp"><span class="lbl">字体<small>上传 ttf / otf / woff</small></span><div class="fontlist" id="fontList"></div><div class="row"><label class="btn sm" for="fontFile">上传字体</label><input type="file" id="fontFile" accept=".ttf,.otf,.woff,.woff2,font/ttf,font/otf,font/woff,font/woff2" hidden><span class="hint" id="fontMsg"></span></div></div>
+          
+          <div class="grp"><span class="lbl">画面里的文字<small>按格子从上到下</small></span><div class="txlist" id="txlist"></div></div>
+          <div class="grp"><span class="lbl">整套替换<small>没单独改过的格子跟着变</small></span><label class="f lv-s">标题<textarea id="t-title" rows="2"></textarea></label>
+          <label class="f lv-s">活动信息（每行一条）<textarea id="t-lines" rows="4"></textarea></label></div>
+          
+        </div>
+        
+      </aside>
+    </div>
+  </div>
+</div>
+<script src="./app.bundle.js"></script>
+</body>
+</html>
