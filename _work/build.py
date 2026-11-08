@@ -184,7 +184,11 @@ for fam in ('InterD', 'PoppinsT'):
 
 from restyle import RESTYLE
 css = css + '\n' + RESTYLE
+# 4px 栅格：先把源 CSS 的间距/圆角量化，再生成兼容层，避免兼容层里冒出新的非 4 倍数
+from spacing import rewrite_css, rewrite_radius, self_check
+css = rewrite_radius(rewrite_css(css))
 css = transform(css)
+# transform 会按原值重建 gap/inset 声明，最后再兜一次
 # 补图形容器的行间距（子项是 SVG + 纯文本节点，> * + * 抓不到）
 TEXT_NODE_FIX = [
     ('.brand > .mark', 'margin-right:10px'),
@@ -214,6 +218,13 @@ compat_css = ['/* Chrome 61 基线层：替代 flex gap / :focus-visible / min()
 for media, sel, decl in ordered:
     rule = '%s{%s}' % (sel, decl if decl.endswith(';') else decl + ';')
     compat_css.append((media + '{' + rule + '}\n') if media else rule + '\n')
+
+# 兼容层也可能带入间距（如负边距），合并后统一再量化一次并自检
+compat_merged = ''.join(compat_css)
+compat_merged = rewrite_css(compat_merged)
+compat_css = [compat_merged]
+css = rewrite_css(css)
+self_check(css + '\n' + compat_merged, fail)
 
 open(os.path.join(OUT, 'style.css'), 'w', encoding='utf-8').write(css)
 open(os.path.join(OUT, 'compat.css'), 'w', encoding='utf-8').write(''.join(compat_css))
@@ -1142,10 +1153,12 @@ body_html = body_html[:_layout_close] + '          ' + _anim + '\n        ' + bo
 _assets_grp_start = body_html.find('<div class="grp"><span class="lbl">上传素材')
 if _assets_grp_start < 0:
     fail('asset group not found')
-_assets_grp_end = body_html.find('</div></div>', _assets_grp_start)
+# 结束锚点必须精确到素材组自己的收尾，否则会把下一组（画面里的文字）一起切走
+_anchor = 'id="assetMsg"></p></div>'
+_assets_grp_end = body_html.find(_anchor, _assets_grp_start)
 if _assets_grp_end < 0:
     fail('asset group end not found')
-_assets_grp_end += len('</div></div>')
+_assets_grp_end += len(_anchor)
 _assets_block = body_html[_assets_grp_start:_assets_grp_end]
 body_html = body_html[:_assets_grp_start] + body_html[_assets_grp_end:]
 
@@ -1162,7 +1175,7 @@ _save_btn = ('<div class="grp"><span class="lbl">保存作品</span>'
 body_html = body_html.replace(_save_btn, '')
 body_html = body_html.replace(
     '<button class="btn" id="png" type="button">导出 PNG</button>',
-    '<button class="btn" id="tool" type="button">存到相册</button>'
+    '<button class="btn" id="tool" type="button" hidden>存到相册</button>'
     '<button class="btn" id="png" type="button">导出 PNG</button>')
 if 'id="tool"' not in body_html:
     fail('save button not moved')

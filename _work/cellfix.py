@@ -564,4 +564,29 @@ function showMeta(){ if($('assetMsg')) $('assetMsg').textContent='这一格已�
         " if(MUST_SHOW.length) pinAssets()}",
         js, 'drawBest keeps assets')
 
+        # ---------------------------------------------------------------- 文字卡不再互相遮挡
+    # autoH() 在面板隐藏时量 scrollHeight=0，会把 textarea 锁成 2px，切回来文字就叠在一起。
+    # 改成：可见才量；量到 0 就不写死高度；页签切换后统一重算。
+    js = must(
+        "function autoH(el){if(el.tagName==='TEXTAREA'){el.style.height='auto'; "
+        "el.style.height=el.scrollHeight+2+'px'}}",
+        "function autoH(el){ if(!el||el.tagName!=='TEXTAREA') return;\n"
+        "  if(!el.offsetParent && el.getClientRects().length===0) return;  // 面板不可见时不量\n"
+        "  el.style.height='auto';\n"
+        "  var h=el.scrollHeight; if(h>0) el.style.height=h+'px'; }\n"
+        "function autoHAll(){ document.querySelectorAll('#txlist textarea').forEach(autoH) }",
+        js, 'autoH measure guard')
+
+    # 切到文案页签、或窗口尺寸变化后，重新量一次
+    js = must(
+        "setInterval(buildTx,250);",
+        "setInterval(buildTx,250);\n"
+        "window.addEventListener('resize',function(){ setTimeout(autoHAll,60) });\n"
+        "document.addEventListener('click',function(e){\n"
+        "  var b=e.target&&e.target.closest?e.target.closest('[role=tab],[data-p]'):null;\n"
+        "  if(b) setTimeout(autoHAll,80);\n"
+        "},true);\n"
+        "setTimeout(autoHAll,120);",
+        js, 'autoH on tab switch')
+
     return js

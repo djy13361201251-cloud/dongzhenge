@@ -251,6 +251,14 @@ body.stageonly #fs{position:fixed;right:20px;top:20px;z-index:99;
   background:rgba(255,255,255,.14);color:#fff;border:0;
   -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
 body.stageonly #fs:hover{background:rgba(255,255,255,.26)}
+
+/* 侧栏高度链：paneWrap 必须是 flex 容器，里面的 .pane 才能拿到 flex:1 自己滚动，
+   否则内容会把面板撑出窗口，底部被裁掉一截。 */
+#paneWrap{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
+#paneWrap > .pane{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;
+  padding-bottom:24px;-webkit-overflow-scrolling:touch}
+#paneWrap > .pane::after{content:"";display:block;height:8px}
+.side{overflow:hidden}
 """
 
 
