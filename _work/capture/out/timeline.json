@@ -1,0 +1,74 @@
+[
+ {
+  "file": "/Users/daijingyi/Desktop/软糖动效素材包/_work/capture/out/seg_00_01_intro.mp4",
+  "dur": 2.2,
+  "label": "出场：海报在动",
+  "speed": 1.9090909090909085
+ },
+ {
+  "file": "/Users/daijingyi/Desktop/软糖动效素材包/_work/capture/out/seg_01_02_styles.mp4",
+  "dur": 3.2,
+  "label": "三种风格连切",
+  "speed": 1.9374999999999998
+ },
+ {
+  "file": "/Users/daijingyi/Desktop/软糖动效素材包/_work/capture/out/seg_02_03_draw.mp4",
+  "dur": 3.6,
+  "label": "抽卡",
+  "speed": 1.8888888888888888
+ },
+ {
+  "file": "/Users/daijingyi/Desktop/软糖动效素材包/_work/capture/out/seg_03_04_cell.mp4",
+  "dur": 3.2,
+  "label": "单格改造",
+  "speed": 2.1875
+ },
+ {
+  "file": "/Users/daijingyi/Desktop/软糖动效素材包/_work/capture/out/seg_04_05_lock.mp4",
+  "dur": 2.6,
+  "label": "锁定 + 再抽",
+  "speed": 2.7692307692307696
+ },
+ {
+  "file": "/Users/daijingyi/Desktop/软糖动效素材包/_work/capture/out/seg_05_06_drag.mp4",
+  "dur": 2.8,
+  "label": "拖缝隙",
+  "speed": 2.0
+ },
+ {
+  "file": "/Users/daijingyi/Desktop/软糖动效素材包/_work/capture/out/seg_06_07_chaos.mp4",
+  "dur": 1.8,
+  "label": "混乱模式",
+  "speed": 2.666666666666667
+ },
+ {
+  "file": "/Users/daijingyi/Desktop/软糖动效素材包/_work/capture/out/seg_07_08_text.mp4",
+  "dur": 3.4,
+  "label": "文字层级",
+  "speed": 2.3529411764705883
+ },
+ {
+  "file": "/Users/daijingyi/Desktop/软糖动效素材包/_work/capture/out/seg_08_09_color.mp4",
+  "dur": 3.2,
+  "label": "配色",
+  "speed": 2.2499999999999996
+ },
+ {
+  "file": "/Users/daijingyi/Desktop/软糖动效素材包/_work/capture/out/seg_09_10_piccolor.mp4",
+  "dur": 2.6,
+  "label": "拖图取色",
+  "speed": 2.4615384615384612
+ },
+ {
+  "file": "/Users/daijingyi/Desktop/软糖动效素材包/_work/capture/out/seg_10_11_series.mp4",
+  "dur": 2.4,
+  "label": "系列海报",
+  "speed": 2.416666666666667
+ },
+ {
+  "file": "/Users/daijingyi/Desktop/软糖动效素材包/_work/capture/out/seg_11_12_export.mp4",
+  "dur": 2.0,
+  "label": "导出",
+  "speed": 2.1999999999999997
+ }
+]

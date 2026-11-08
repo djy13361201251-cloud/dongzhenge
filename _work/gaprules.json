@@ -1,0 +1,434 @@
+[
+ {
+  "sel": [
+   ".app"
+  ],
+  "disp": [
+   "flex"
+  ],
+  "gap": "var(--gap)",
+  "len": 219
+ },
+ {
+  "sel": [
+   ".top"
+  ],
+  "disp": [
+   "flex"
+  ],
+  "gap": "10px",
+  "len": 77
+ },
+ {
+  "sel": [
+   ".brand"
+  ],
+  "disp": [
+   "flex"
+  ],
+  "gap": "10px",
+  "len": 139
+ },
+ {
+  "sel": [
+   ".mark"
+  ],
+  "disp": [
+   "grid"
+  ],
+  "gap": "2px",
+  "len": 81
+ },
+ {
+  "sel": [
+   ".main"
+  ],
+  "disp": [
+   "grid"
+  ],
+  "gap": "var(--gap)",
+  "len": 95
+ },
+ {
+  "sel": [
+   ".side"
+  ],
+  "disp": [
+   "flex"
+  ],
+  "gap": "var(--gap)",
+  "len": 69
+ },
+ {
+  "sel": [
+   ".dock"
+  ],
+  "disp": [
+   "flex"
+  ],
+  "gap": "6px 12px",
+  "len": 147
+ },
+ {
+  "sel": [
+   ".dock .scrubw"
+  ],
+  "disp": [
+   "flex"
+  ],
+  "gap": "12px",
+  "len": 79
+ },
+ {
+  "sel": [
+   "/* buttons */\n.btn"
+  ],
+  "disp": [
+   "inline-flex"
+  ],
+  "gap": "7px",
+  "len": 385
+ },
+ {
+  "sel": [
+   ".toggle"
+  ],
+  "disp": [
+   "inline-flex"
+  ],
+  "gap": "8px",
+  "len": 122
+ },
+ {
+  "sel": [
+   "/* draw cell */\n.drawc"
+  ],
+  "disp": [
+   "flex"
+  ],
+  "gap": "10px",
+  "len": 81
+ },
+ {
+  "sel": [
+   ".drawbtn .dt"
+  ],
+  "disp": [
+   "flex"
+  ],
+  "gap": "1px",
+  "len": 111
+ },
+ {
+  "sel": [
+   ".strip"
+  ],
+  "disp": [
+   "grid"
+  ],
+  "gap": "3px",
+  "len": 102
+ },
+ {
+  "sel": [
+   ".drawrow"
+  ],
+  "disp": [
+   "flex"
+  ],
+  "gap": "6px",
+  "len": 50
+ },
+ {
+  "sel": [
+   ".result"
+  ],
+  "disp": [
+   "flex"
+  ],
+  "gap": "8px",
+  "len": 194
+ },
+ {
+  "sel": [
+   ".grp"
+  ],
+  "disp": [
+   "flex"
+  ],
+  "gap": "9px",
+  "len": 61
+ },
+ {
+  "sel": [
+   ".lbl"
+  ],
+  "disp": [
+   "flex"
+  ],
+  "gap": "8px",
+  "len": 96
+ },
+ {
+  "sel": [
+   ".seg button"
+  ],
+  "disp": [
+   "flex"
+  ],
+  "gap": "6px",
+  "len": 331
+ },
+ {
+  "sel": [
+   ".sliders"
+  ],
+  "disp": [
+   "grid"
+  ],
+  "gap": "12px 20px",
+  "len": 67
+ },
+ {
+  "sel": [
+   ".mini"
+  ],
+  "disp": [
+   "flex"
+  ],
+  "gap": "4px",
+  "len": 62
+ },
+ {
+  "sel": [
+   ".lib"
+  ],
+  "disp": [
+   "grid"
+  ],
+  "gap": "7px",
+  "len": 63
+ },
+ {
+  "sel": [
+   ".colors"
+  ],
+  "disp": [
+   "grid"
+  ],
+  "gap": "8px",
+  "len": 66
+ },
+ {
+  "sel": [
+   ".colors label"
+  ],
+  "disp": [
+   "flex"
+  ],
+  "gap": "8px",
+  "len": 88
+ },
+ {
+  "sel": [
+   ".five"
+  ],
+  "disp": [
+   "grid"
+  ],
+  "gap": "4px",
+  "len": 70
+ },
+ {
+  "sel": [
+   "label.f"
+  ],
+  "disp": [
+   "flex"
+  ],
+  "gap": "6px",
+  "len": 100
+ },
+ {
+  "sel": [
+   ".row"
+  ],
+  "disp": [
+   "flex"
+  ],
+  "gap": "8px",
+  "len": 61
+ },
+ {
+  "sel": [
+   "/* on-canvas */\n.badge"
+  ],
+  "disp": [
+   "inline-flex"
+  ],
+  "gap": "8px",
+  "len": 295
+ },
+ {
+  "sel": [
+   ".pop"
+  ],
+  "disp": [
+   "flex"
+  ],
+  "gap": "12px",
+  "len": 314
+ },
+ {
+  "sel": [
+   ".popcols"
+  ],
+  "disp": [
+   "grid"
+  ],
+  "gap": "5px",
+  "len": 67
+ },
+ {
+  "sel": [
+   ".popfields"
+  ],
+  "disp": [
+   "flex"
+  ],
+  "gap": "8px",
+  "len": 55
+ },
+ {
+  "sel": [
+   ".popacts"
+  ],
+  "disp": [
+   "grid"
+  ],
+  "gap": "6px",
+  "len": 61
+ },
+ {
+  "sel": [
+   ".seg.vis button"
+  ],
+  "disp": [
+   "?"
+  ],
+  "gap": "7px",
+  "len": 83
+ },
+ {
+  "sel": [
+   ".grp"
+  ],
+  "disp": [
+   "flex"
+  ],
+  "gap": "8px",
+  "len": 14
+ },
+ {
+  "sel": [
+   ".sliders"
+  ],
+  "disp": [
+   "grid"
+  ],
+  "gap": "9px 20px",
+  "len": 23
+ },
+ {
+  "sel": [
+   ".mini"
+  ],
+  "disp": [
+   "flex"
+  ],
+  "gap": "2px",
+  "len": 15
+ },
+ {
+  "sel": [
+   "/* text pane: one card per text cell",
+   "inputs styled by hierarchy level */\n.txlist"
+  ],
+  "disp": [
+   "flex",
+   "flex"
+  ],
+  "gap": "8px",
+  "len": 127
+ },
+ {
+  "sel": [
+   ".txc"
+  ],
+  "disp": [
+   "flex"
+  ],
+  "gap": "7px",
+  "len": 163
+ },
+ {
+  "sel": [
+   ".txh"
+  ],
+  "disp": [
+   "flex"
+  ],
+  "gap": "8px",
+  "len": 98
+ },
+ {
+  "sel": [
+   ".lvf"
+  ],
+  "disp": [
+   "grid"
+  ],
+  "gap": "8px",
+  "len": 76
+ },
+ {
+  "sel": [
+   ".drawc"
+  ],
+  "disp": [
+   "?"
+  ],
+  "gap": "8px",
+  "len": 28
+ },
+ {
+  "sel": [
+   ".sliders"
+  ],
+  "disp": [
+   "grid"
+  ],
+  "gap": "5px 18px",
+  "len": 25
+ },
+ {
+  "sel": [
+   ".lib"
+  ],
+  "disp": [
+   "grid"
+  ],
+  "gap": "5px",
+  "len": 13
+ },
+ {
+  "sel": [
+   ".sliders"
+  ],
+  "disp": [
+   "grid"
+  ],
+  "gap": "2px 18px",
+  "len": 25
+ }
+]

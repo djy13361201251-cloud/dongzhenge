@@ -1,0 +1,7 @@
+.DS_Store
+_work/dist/
+_work/**/*.zip
+动真格-*/
+*.mp4
+*.mov
+_skill_dl/extracted/
