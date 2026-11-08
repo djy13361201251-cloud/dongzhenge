@@ -1009,7 +1009,42 @@ function sync(){setTimeout(paintRanges,0);
   ['title','lines'].forEach(k=>{if(document.activeElement!==$('t-'+k)) $('t-'+k).value=S.text[k]});
 }
 function loadFonts(){if(!document.fonts||typeof document.fonts.load!=='function') return Promise.resolve();return Promise.all([document.fonts.load('900 100px InterD'),document.fonts.load('900 100px PoppinsT')]).catch(function(){})}
-function fit(){if(document.body.classList.contains('stageonly')) return; const st=cv.parentElement; const cs=getComputedStyle(st); const bw=st.clientWidth-(window.innerWidth<=1000?28:44), bh=window.innerWidth<=1000?window.innerHeight*0.7:st.clientHeight-44; const [w,h]=G.size(); const k=Math.min(bw/w,bh/h); cv.style.width=Math.floor(w*k)+'px'; cv.style.height=Math.floor(h*k)+'px'}
+function mobileBH(){
+  var db=document.getElementById('rand');
+  if(!db||!cv.offsetHeight||window.innerWidth>640) return window.innerHeight*0.7;
+  var cr=cv.getBoundingClientRect(), dr=db.getBoundingClientRect();
+  var top=cr.top+(window.pageYOffset||0);          // 画布上方占用（与画布高度无关）
+  var below=dr.bottom-cr.bottom;                   // 画布底到「抽一张」底（与画布高度无关）
+  var safeB=40;                                    // Home 指示条 + 留白
+  var avail=window.innerHeight-top-below-safeB;
+  return Math.max(280, Math.min(window.innerHeight*0.7, avail));
+}
+var ACT_IDS=['fs','png','mp4'];
+function placeActions(){
+  var mobile=window.innerWidth<=640;
+  var top=document.querySelector('.top'), dc=document.querySelector('.drawc');
+  if(!top||!dc) return;
+  var row=document.getElementById('acts');
+  if(!row){ row=document.createElement('div'); row.id='acts'; row.className='acts'; }
+  if(mobile){
+    if(row.parentNode!==dc) dc.appendChild(row);
+    ACT_IDS.forEach(function(id){ var b=document.getElementById(id); if(b) row.appendChild(b) });
+  } else {
+    ACT_IDS.forEach(function(id){ var b=document.getElementById(id); if(b) top.appendChild(b) });
+    if(row.parentNode) row.parentNode.removeChild(row);
+  }
+}
+placeActions();
+window.addEventListener('resize',function(){ placeActions() });
+function fit(){if(document.body.classList.contains('stageonly')) return; const st=cv.parentElement; const cs=getComputedStyle(st); const bw=st.clientWidth-(window.innerWidth<=1000?28:44), bh=window.innerWidth<=1000?mobileBH():st.clientHeight-44; const [w,h]=G.size(); const k=Math.min(bw/w,bh/h); cv.style.width=Math.floor(w*k)+'px'; cv.style.height=Math.floor(h*k)+'px';
+  if(window.innerWidth<=640){ var rb=$('rand'); var ch=Math.floor(h*k);
+    for(var it=0; it<3 && rb; it++){
+      var over=rb.getBoundingClientRect().bottom+(window.pageYOffset||0)-(window.innerHeight-40);
+      if(over<=1) break;
+      ch=Math.max(220, ch-Math.ceil(over)); if(ch===220&&it>0) break;
+      cv.style.height=ch+'px'; cv.style.width=Math.floor(ch*w/h)+'px';
+    } }
+}
 window.addEventListener('resize',fit);
 let lastAsp='';
 function loop(){if(S.aspect!==lastAsp){lastAsp=S.aspect; requestAnimationFrame(fit)} if(!exporting){const t=curT(); G.render(ctx,t,{now:performance.now(),live:true}); if(document.activeElement!==$('scrub')){$('scrub').value=Math.round(t/S.dur*1000); $('scrub').style.setProperty('--p',(t/S.dur*100)+'%')} $('time').textContent=`${t.toFixed(1)}s`} drawOverlay(); requestAnimationFrame(loop)}
@@ -1581,6 +1616,7 @@ var FS=false;
 function setFull(on){
   FS=on;
   document.body.classList.toggle('stageonly', !!on);
+  if(on){ var fb=$('fs'); if(fb) document.body.appendChild(fb) } else if(typeof placeActions==='function'){ placeActions() }
   var b=$('fs');
   if(b){ b.setAttribute('aria-pressed', String(!!on)); b.textContent = on ? '退出演示' : '全屏演示' }
   setTimeout(fit, 40); setTimeout(fit, 260); setTimeout(fit, 700);

@@ -408,4 +408,19 @@ html,body{overflow-x:hidden}
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;justify-content:center}/* 底部让出 Home 指示条 */
   .app{padding-bottom:24px;padding-bottom:calc(24px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)))!important}
 }/* 小红书容器：顶部让出状态栏 + 导航胶囊（返回 / 分享 / 更多） */
-.in-xhs .app{padding-top:56px;padding-top:calc(48px + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)))!important}
+.in-xhs .app{padding-top:56px;padding-top:calc(48px + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)))!important}/* 手机：演示 / 导出 挪到「抽一张」卡片底部，三等分 */
+.acts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-gap:8px;margin-top:12px}
+.acts > *{margin:0!important}
+.acts .btn{width:100%;min-width:0;height:40px;padding-left:8px;padding-right:8px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;justify-content:center}/* 窄屏是上下堆叠：画布卡片按内容高度走，时间轴不再被拉伸成一大块空白 */
+@media (max-width:1000px){
+  .main{display:block!important}
+  .main > .side{margin-top:16px;height:auto}
+  .desk{height:auto!important}
+  .dock{align-content:flex-start;flex-wrap:wrap!important}
+  .dock .editHint{flex:0 0 100%;width:100%;max-width:100%;box-sizing:border-box}
+}
+@media (max-width:640px){
+  .top{display:flex;min-height:40px}
+  .stage{padding:12px}
+}
