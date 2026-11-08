@@ -717,7 +717,7 @@ function layouts(){
   // map B rects onto A cells by size rank (largest stays the product)
   const ia=[...A.keys()].sort((i,j)=>A[j].w*A[j].h-A[i].w*A[i].h), ib=[...B.keys()].sort((i,j)=>B[j].w*B[j].h-B[i].w*B[i].h);
   const Bm=new Array(A.length); ia.forEach((a,k)=>{Bm[a]=B[ib[k]]||A[a]});
-  CACHE={key,A,B:edited?A.map(c=>Object.assign({},c)):Bm,types}; return CACHE;
+  CACHE={key,A,B:Bm,types}; return CACHE;
 }
 const TEXTT={has:t=>!!t&&(t.startsWith('tx:')||t==='note'||t==='letter')};
 function geoKey(){return JSON.stringify([S.cols,S.rows,S.count,S.variance,S.bias,S.seed,S.aspect])}
@@ -1323,7 +1323,7 @@ function edgeGroup(E){const c=E.cells; const v=E.dir==='v'; const A=[],B=[]; // 
     if(!inA.has(i)&&near(v?q.x+q.w:q.y+q.h,E.line)){inA.add(i); changed=true} if(!inB.has(i)&&near(v?q.x:q.y,E.line)){inB.add(i); changed=true}
     if(inA.has(i)||inB.has(i)){if(s0<lo-0.001){lo=s0; changed=true} if(s1>hi+0.001){hi=s1; changed=true}}})}
   return {A:[...inA],B:[...inB]}}
-cv.addEventListener('pointermove',e=>{if(DRAG){const pt=toCanvas(e); const u=G.unit(); const v=DRAG.dir==='v'; const d=((v?pt.x:pt.y)-DRAG.start)/(v?u.ux:u.uy);
+cv.addEventListener('pointermove',e=>{if(DRAG){if(!DRAG.moved){ if(!downPt||Math.hypot(e.clientX-downPt[0],e.clientY-downPt[1])<6) return; playing=false; tPause=Math.max(tPause,Math.min(S.dur*0.45,G.shuffleT()-0.05)); if(S.shuffle&&tPause<2.2) tPause=2.2; $('play').textContent='▶' } const pt=toCanvas(e); const u=G.unit(); const v=DRAG.dir==='v'; const d=((v?pt.x:pt.y)-DRAG.start)/(v?u.ux:u.uy);
     let nl=Math.round((DRAG.line+d)*4)/4; const c=DRAG.orig; let mn=-1e9, mx=1e9;
     DRAG.g.A.forEach(i=>{mn=Math.max(mn,(v?c[i].x:c[i].y)+0.5)}); DRAG.g.B.forEach(i=>{mx=Math.min(mx,(v?c[i].x+c[i].w:c[i].y+c[i].h)-0.5)}); nl=Math.max(mn,Math.min(mx,nl));
     const cells=c.map(q=>Object.assign({},q)); DRAG.g.A.forEach(i=>{if(v) cells[i].w=nl-cells[i].x; else cells[i].h=nl-cells[i].y}); DRAG.g.B.forEach(i=>{if(v){const r=cells[i].x+cells[i].w; cells[i].x=nl; cells[i].w=r-nl} else {const r=cells[i].y+cells[i].h; cells[i].y=nl; cells[i].h=r-nl}});
@@ -1331,7 +1331,7 @@ cv.addEventListener('pointermove',e=>{if(DRAG){const pt=toCanvas(e); const u=G.u
   const E=SWAP<0?findEdge(toCanvas(e)):null; cv.style.cursor=E?(E.dir==='v'?'col-resize':'row-resize'):''});
 cv.addEventListener('pointerdown',e=>{downPt=[e.clientX,e.clientY]; const pt=toCanvas(e); const E=SWAP<0?findEdge(pt):null; if(!E) return;
   pushUndo(); const g=edgeGroup(E); DRAG={dir:E.dir,line:E.line,start:E.dir==='v'?pt.x:pt.y,orig:E.cells,g,moved:false}; cv.setPointerCapture(e.pointerId);
-  playing=false; tPause=Math.max(tPause,Math.min(S.dur*0.45,G.shuffleT()-0.05)); if(S.shuffle&&tPause<2.2) tPause=2.2; $('play').textContent='▶'; e.preventDefault()});
+  e.preventDefault()});
 cv.addEventListener('pointerup',e=>{if(DRAG){const m=DRAG.moved; DRAG=null; if(!m) UNDO.pop(); cv.__skipClick=true; setTimeout(()=>{cv.__skipClick=false},0)}});
 
 // ---- undo stack

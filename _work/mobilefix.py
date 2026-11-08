@@ -104,4 +104,23 @@ function readImageFile(f, cb){
         "    say(failed.length?('已添加 '+results.length+' 个，有 '+failed.length+' 个读不了：'+failed.join('、'))"
         ":('已添加 '+results.length+' 个素材。'+(input.id==='popFileAll'?'':'点画面里的格子即可放进去。')));",
         js, 'upload ok msg')
+        # ---- 中途自动变换不再被“碰过缝隙”关掉
+    # 原逻辑：只要拖过缝隙（S.cells 被改），B=A 的副本，之后每轮都不变换。
+    # 改为：B 仍按调整后的 A 重新映射，用户调的尺寸保留在前半段，后半段照常变换。
+    js = must("  CACHE={key,A,B:edited?A.map(c=>Object.assign({},c)):Bm,types}; return CACHE;",
+              "  CACHE={key,A,B:Bm,types}; return CACHE;",
+              js, 'keep shuffle after edit')
+
+    # 按下缝隙不再立刻暂停；真的拖动超过 6px 才进入拖动并暂停
+    js = must("  playing=false; tPause=Math.max(tPause,Math.min(S.dur*0.45,G.shuffleT()-0.05)); "
+              "if(S.shuffle&&tPause<2.2) tPause=2.2; $('play').textContent='▶'; e.preventDefault()});",
+              "  e.preventDefault()});",
+              js, 'no pause on press')
+    js = must("cv.addEventListener('pointermove',e=>{if(DRAG){const pt=toCanvas(e);",
+              "cv.addEventListener('pointermove',e=>{if(DRAG){"
+              "if(!DRAG.moved){ if(!downPt||Math.hypot(e.clientX-downPt[0],e.clientY-downPt[1])<6) return;"
+              " playing=false; tPause=Math.max(tPause,Math.min(S.dur*0.45,G.shuffleT()-0.05));"
+              " if(S.shuffle&&tPause<2.2) tPause=2.2; $('play').textContent='▶' }"
+              " const pt=toCanvas(e);",
+              js, 'drag threshold')
     return js
