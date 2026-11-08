@@ -469,6 +469,54 @@ js = must("$(\'popType\').onchange=e=>{const v=e.target.value; if(v.startsWith(\
           " if(v.startsWith(\'hero:\')){",
           js, 'heroimg onchange')
 
+
+# ============================================================ 上下文面板（替代浮层）
+# 1) 弹窗改为右侧面板内的子视图，不再绝对定位覆盖画布
+js = must("function openPop(i){flashTx(i); SEL=i; pop.hidden=false; $('popFields').dataset.for=''; syncPop()}",
+          "function openPop(i){flashTx(i); SEL=i; pop.hidden=false; document.body.classList.add('editing');"
+          " var ip=$('inspPop'); if(ip){ip.hidden=false}"
+          " var pk=$('paneWrap'); if(pk){pk.hidden=true}"
+          " if(typeof setRightTab==='function') setRightTab('pop');"
+          " $('popFields').dataset.for=''; syncPop()}",
+          js, 'openPop')
+
+js = must("const stage=cv.parentElement, ov=$('ov'), pop=$('pop'), selbox=$('selbox');",
+          "const stage=cv.parentElement, ov=$('ov'), pop=$('inspPop'), selbox=$('selbox');",
+          js, 'pop ref')
+
+js = must("function closePop(){SEL=-1; SWAP=-1; stage.classList.remove('swapping'); pop.hidden=true; selbox.hidden=true}",
+          "function closePop(){SEL=-1; SWAP=-1; stage.classList.remove('swapping'); pop.hidden=true; selbox.hidden=true;"
+          " document.body.classList.remove('editing');"
+          " var ip=$('inspPop'); if(ip){ip.hidden=true}"
+          " var pk=$('paneWrap'); if(pk){pk.hidden=false}"
+          " if(typeof setRightTab==='function') setRightTab('back')}",
+          js, 'closePop')
+
+# 2) 不再给弹窗计算绝对坐标（画布不会被遮挡）
+js = must("    pop.style.left=px+'px'; pop.style.top=py+'px'} else selbox.hidden=true;",
+          "    if(false){} } else selbox.hidden=true;",
+          js, 'pop positioning')
+
+
+# ============================================================ 面板切换与返回
+CTX_UI = r"""
+// ---- 右侧上下文：整张海报 <-> 第 N 格
+function setRightTab(mode){
+  var tabs=$('tabs');
+  if(tabs) tabs.classList.toggle('is-dim', mode==='pop');
+}
+$('popBack').onclick=function(){ closePop() };
+// 点面板外（画布上别处）不关闭，避免误触丢上下文
+"""
+
+# 点击空白格不应打开空面板
+js = must("cv.addEventListener('click',e=>{if(cv.__skipClick) return; const i=hit(e); if(i<0) return;",
+          "cv.addEventListener('click',e=>{if(cv.__skipClick) return;"
+          " const i=hit(e); if(i<0){ closePop(); return }",
+          js, 'blank click closes')
+
+# 把 CTX_UI 注入
+
 # ------------------------------------------------------------ 多图 + 全屏演示
 MULTI_IMG = r"""
 
@@ -698,7 +746,7 @@ _TAIL = "G.drawBest(20261108,{tier:'SSR'}); sync(); loadFonts().then(()=>{reques
 if js.count(_TAIL) != 1:
     fail('IIFE tail anchor not found exactly once')
 js = js.replace(_TAIL, "G.drawBest(20261108,{tier:'SSR'}); sync(); loadFonts().then(()=>{requestAnimationFrame(loop)});\n"
-                        + MULTI_IMG + '\n' + FULLSCREEN + '\n' + CELLIMG_UI + "\n})();")
+                        + MULTI_IMG + '\n' + FULLSCREEN + '\n' + CELLIMG_UI + '\n' + CTX_UI + "\n})();")
 
 for bad, label in ((r'\beval\s*\(', 'eval'), (r'new\s+Function\s*\(', 'new Function'),
                    (r'\bfetch\s*\(', 'fetch'), (r'XMLHttpRequest', 'XHR'),
@@ -772,6 +820,57 @@ body_html = body_html.replace(
     '<div class="popimgs" id="popImgList"></div></div>')
 if 'id="popImgRow"' not in body_html:
     fail('popup image row not injected')
+
+
+# ---- 把浮层搬进右侧面板，做成上下文视图
+import re as _re
+
+def _extract_div(html, start_idx):
+    """按 <div> 配对取出完整块"""
+    depth = 0
+    k = start_idx
+    pat = _re.compile(r'<div\b|</div>')
+    while True:
+        m = pat.search(html, k)
+        if not m:
+            return html[start_idx:], len(html)
+        if m.group(0) == '<div':
+            depth += 1
+        else:
+            depth -= 1
+            if depth == 0:
+                return html[start_idx:m.end()], m.end()
+        k = m.end()
+
+_pop_i = body_html.find('<div class="pop" id="pop"')
+if _pop_i < 0:
+    fail('popup block not found')
+_pop_block, _pop_end = _extract_div(body_html, _pop_i)
+body_html = body_html[:_pop_i] + body_html[_pop_end:]
+
+# 去掉 role=dialog，改成面板
+_pop_inner = _pop_block
+_pop_inner = _pop_inner.replace('<div class="pop" id="pop" hidden role="dialog" aria-label="编辑格子">',
+                                '<div class="inspview" id="inspPop" hidden>')
+_pop_inner = _pop_inner.replace(
+    '<div class="pophead"><span id="popTitle">格子</span>',
+    '<div class="pophead"><button class="popback" id="popBack" type="button">← 整张海报</button>'
+    '<span id="popTitle">格子</span>')
+if 'id="inspPop"' not in _pop_inner:
+    fail('inspview rewrite failed')
+
+# 在 aside 里包一层 paneWrap，并注入上下文视图
+_aside_open = '<aside class="cell insp">'
+if _aside_open not in body_html:
+    fail('aside not found')
+body_html = body_html.replace(_aside_open,
+    _aside_open + '\n        ' + _pop_inner + '\n        <div id="paneWrap">', 1)
+# 关闭 paneWrap：aside 结束前
+_aside_close = '</aside>'
+_last = body_html.rfind(_aside_close)
+body_html = body_html[:_last] + '</div>\n      ' + body_html[_last:]
+
+# 原 pop 里的那些 id 在面板里继续可用；补一个返回按钮的绑定
 
 # 全屏演示按钮
 body_html = body_html.replace(

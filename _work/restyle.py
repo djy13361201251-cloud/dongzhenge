@@ -102,6 +102,34 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border-width:3px}
 .prog{height:3px;border-radius:3px}
 .prog span{border-radius:3px}
 .thumb{border:0;border-radius:11px}
+/* 上下文面板：格子编辑不再是浮层，改为右侧主视图 */
+.inspview{padding:14px 18px 18px;display:flex;flex-direction:column;gap:12px;
+  animation:paneIn .32s var(--soft) both}
+.inspview[hidden]{display:none!important}
+.inspview .pophead{margin:-4px -4px 2px;padding:0 0 10px;border-bottom:1px solid var(--hair);
+  display:flex;align-items:center;gap:10px}
+.popback{border:0;background:var(--hover);border-radius:999px;padding:6px 12px;font:inherit;
+  font-size:12px;font-weight:600;color:var(--ink2);cursor:pointer;white-space:nowrap}
+.popback:hover{background:#E7DCD2;color:var(--ink)}
+.inspview .pophead #popTitle{margin-left:auto;font-size:13px;font-weight:700;color:var(--muted)}
+.inspview .pop .x, .inspview .x{width:28px;height:28px;border:0;background:var(--hover);
+  border-radius:50%;cursor:pointer;color:var(--ink);font-size:15px;line-height:1}
+.inspview .x:hover{background:#E7DCD2}
+.inspview .popcols button{height:34px}
+.inspview .popacts .btn{padding:9px 10px}
+.inspview .popacts{grid-gap:8px}
+
+/* 进入格子编辑时，页签条淡出，避免两个导航并存 */
+.tabs.is-dim{opacity:.34;pointer-events:none;transition:opacity .25s}
+
+/* 选中框在画布上常驻，且不与面板重叠 */
+.selbox{border-radius:12px;box-shadow:0 0 0 3px rgba(255,255,255,.9)}
+
+/* 画布不再被浮层挤压 */
+.stage canvas{border-radius:0}
+.pop{position:static;width:auto;max-height:none;overflow:visible;background:none;
+  box-shadow:none;border-radius:0}
+
 /* 弹窗内的素材选择行 */
 .popimgs{display:grid;grid-template-columns:repeat(4,1fr);grid-gap:8px;margin-top:8px}
 .pimg{width:100%;aspect-ratio:1;border:0;border-radius:12px;padding:0;cursor:pointer;
