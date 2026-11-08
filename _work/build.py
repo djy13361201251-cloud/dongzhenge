@@ -320,7 +320,7 @@ js = js[:m.start()] + (
     "$('tool').onclick=async()=>{await loadFonts(); G.render(ctx,curT());"
     " const blob=await new Promise(r=>cv.toBlob(r,'image/png'));\n"
     "  try{const r=await saveFile('动真格_海报.png',blob); "
-    "st.textContent=r==='saved'?'已保存当前帧到相册。':'已取消保存。'}"
+    "st.textContent=r==='saved'?'已保存当前帧到相册。':(r==='local'?'已下载到本地（浏览器预览模式）。':'已取消保存。')}"
     "catch(e){st.textContent='保存失败：'+(e.message||e.code)}};\n") + js[m.end():]
 
 # display:contents -> 直接作为 grid 容器
@@ -605,6 +605,9 @@ js = must("$('clear').onclick=clearImg; $('clear2').onclick=clearImg;",
           "if($('clear')) $('clear').onclick=clearImg; if($('clear2')) $('clear2').onclick=clearImg;",
           js, 'clear2 guard')
 
+
+
+
 # ------------------------------------------------------------ 多图 + 全屏演示
 MULTI_IMG = r"""
 
@@ -796,6 +799,7 @@ function onPick(ev){
     applyGallery(Math.min(first, GALLERY.length-1));
     st.textContent=failed.length?('有 '+failed.length+' 个文件读不了：'+failed.join('、')):'';
     input.value='';
+    renderGallery();
     if(typeof refreshPopImage==='function') refreshPopImage();
   }
 }
@@ -846,6 +850,118 @@ if js.count(_TAIL) != 1:
     fail('IIFE tail anchor not found exactly once')
 js = js.replace(_TAIL, "G.drawBest(20261108,{tier:'SSR'}); sync(); loadFonts().then(()=>{requestAnimationFrame(loop)});\n"
                         + MULTI_IMG + '\n' + FULLSCREEN + '\n' + CELLIMG_UI + '\n' + CTX_UI + '\n' + FONTS_UI + '\n' + MINE_DEL + "\n})();")
+
+js = must("st.textContent=r==='saved'?'已导出当前帧。':'已取消保存。'",
+          "st.textContent=r==='saved'?'已导出当前帧。':(r==='local'?'已下载到本地（浏览器预览模式）。':'已取消保存。')",
+          js, 'png status text')
+
+# ---- 去掉残留的旧上传绑定（会绕过素材库直接写入画面）
+js = must("$('file').onchange=()=>{const f=$('file').files[0]; if(!f) return;",
+          "if(false) $('file').onchange=()=>{const f=$('file').files[0]; if(!f) return;",
+          js, 'legacy file handler')
+
+# 格子渲染：不再回退到全局 IMG，避免影响其他格子
+js = must("      const im=CELLIMG[i]||(S.hero==='image'?IMG:null);",
+          "      const im=CELLIMG[i]||null;",
+          js, 'img render fallback')
+
+# ---- MP4：浏览器环境改为本地下载
+js = must("""    const vp=await toLocalPath(blob);
+    if(!MT||typeof MT.postNote!=='function') throw new Error('当前容器不支持发布视频笔记');
+    await MT.postNote({pageType:'video_publish',mediaInfo:{video_resources:{video_url:vp}}});
+    st.textContent=`已生成 MP4（${(blob.size/1048576).toFixed(1)} MB），正在打开发布页。`;""",
+          """    if(!MT||typeof MT.postNote!=='function'){
+      var rr=localDownload(`动真格_${S.aspect.replace(':','x')}_${stamp()}.mp4`,blob);
+      if(rr!=='local') throw new Error('当前环境不支持保存视频');
+      st.textContent=`已下载 MP4（${(blob.size/1048576).toFixed(1)} MB）。`;
+    } else {
+      const vp=await toLocalPath(blob);
+      await MT.postNote({pageType:'video_publish',mediaInfo:{video_resources:{video_url:vp}}});
+      st.textContent=`已生成 MP4（${(blob.size/1048576).toFixed(1)} MB），正在打开发布页。`;
+    }""",
+          js, 'mp4 local fallback')
+
+# 字体支持删除（与色卡、素材一致）
+js = must("""    if((G.getFont()||null)===(it.fam||null)) b.setAttribute('aria-pressed','true');""",
+          """    if((G.getFont()||null)===(it.fam||null)) b.setAttribute('aria-pressed','true');
+    var wrap=document.createElement('span'); wrap.className='fontwrap';
+    var xx=null;
+    if(it.fam){
+      xx=document.createElement('button');
+      xx.type='button'; xx.className='fontdel';
+      xx.setAttribute('aria-label','删除字体 '+it.name);
+      xx.innerHTML='<svg viewBox="0 0 12 12" width="9" height="9" aria-hidden="true">'
+        +'<path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg>';
+      xx.onclick=function(ev){
+        ev.stopPropagation();
+        if((G.getFont()||null)===it.fam){ G.setFont(null) }
+        FONTS=FONTS.filter(function(x){return x.fam!==it.fam});
+        renderFonts();
+        if(typeof sync==='function') sync();
+      };
+    }""",
+          js, 'font delete btn')
+
+js = must("""    box.appendChild(b);
+  });
+}""",
+          """    wrap.appendChild(b); if(xx) wrap.appendChild(xx);
+    box.appendChild(wrap);
+  });
+}""",
+          js, 'font wrap append')
+
+# ============================================================ 上传不再自动填充
+# 上传只入素材库，不改变画面；由用户点选或通过格子面板指定后才应用
+js = must("""    var first=GALLERY.length;
+    GALLERY=GALLERY.concat(results).slice(-12);
+    applyGallery(Math.min(first, GALLERY.length-1));""",
+          """    GALLERY=GALLERY.concat(results).slice(-12);
+    // 不自动应用：只入库，等用户点选""",
+          js, 'no auto apply')
+
+# 双击全屏演示：移除
+js = must("""canvasTapIcon();
+function canvasTapIcon(){
+  var cv2=$('cv'); if(!cv2) return;
+  cv2.addEventListener('dblclick', function(){ setFull(!FS) });
+}""",
+          "// 双击不再触发全屏，避免误操作",
+          js, 'remove dblclick fullscreen')
+
+# 导出失败：saveImageToPhotosAlbum 需要本地文件路径，先落盘再保存
+js = must("""async function saveFile(name,blob){
+  if(!MT||typeof MT.saveImageToPhotosAlbum!=='function'){const e=new Error('当前容器不支持保存图片'); e.code='unsupported'; throw e}
+  await MT.saveImageToPhotosAlbum({filePath:await toLocalPath(blob)});
+  return 'saved';
+}""",
+          """// 容器内走端能力；浏览器打开时退回本地下载，方便预览
+function localDownload(name,blob){
+  try{
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob); a.download=name;
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){try{URL.revokeObjectURL(a.href); a.remove()}catch(e){}},4000);
+    return 'local';
+  }catch(e){ return 'fail' }
+}
+async function saveFile(name,blob){
+  if(!MT || typeof MT.saveImageToPhotosAlbum!=='function'){
+    var r=localDownload(name,blob);
+    if(r==='local') return 'local';
+    var e=new Error('当前环境不支持保存'); e.code='unsupported'; throw e;
+  }
+  var path=await toLocalPath(blob);
+  try{ await MT.saveImageToPhotosAlbum({filePath:path}) }
+  catch(err){ if(err && err.errMsg) throw new Error(err.errMsg); throw err }
+  return 'saved';
+}""",
+          js, 'saveFile error detail')
+
+# 导出/保存的失败提示更明确
+js = must("catch(e){st.textContent='保存失败：'+(e.message||e.code)}};",
+          "catch(e){st.textContent='保存失败：'+(e.message||e.code||'未知原因')+'（需在 App 内打开）'}};",
+          js, 'save hint')
 
 for bad, label in ((r'\beval\s*\(', 'eval'), (r'new\s+Function\s*\(', 'new Function'),
                    (r'\bfetch\s*\(', 'fetch'), (r'XMLHttpRequest', 'XHR'),

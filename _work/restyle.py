@@ -102,6 +102,15 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border-width:3px}
 .prog{height:3px;border-radius:3px}
 .prog span{border-radius:3px}
 .thumb{border:0;border-radius:11px}
+/* 字体项：悬停删除，与其他素材层级一致 */
+.fontwrap{position:relative;display:inline-flex}
+.fontdel{position:absolute;right:-5px;top:-5px;width:16px;height:16px;border-radius:50%;border:0;
+  background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;padding:0;opacity:0;transform:scale(.7);transition:opacity .16s,transform .18s var(--spring);
+  box-shadow:0 2px 6px rgba(0,0,0,.28);z-index:2}
+.fontwrap:hover .fontdel,.fontwrap:focus-within .fontdel{opacity:1;transform:scale(1)}
+.fontdel:hover{background:#000}
+
 /* 素材缩略图：悬停删除 */
 .gwrap{position:relative;display:block;min-width:0}
 .gwrap .gitem{width:100%;display:block}
