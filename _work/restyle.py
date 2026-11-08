@@ -102,6 +102,23 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border-width:3px}
 .prog{height:3px;border-radius:3px}
 .prog span{border-radius:3px}
 .thumb{border:0;border-radius:11px}
+/* 素材缩略图：悬停删除 */
+.gwrap{position:relative;display:block;min-width:0}
+.gwrap .gitem{width:100%;display:block}
+.gdel{position:absolute;right:-5px;top:-5px;width:17px;height:17px;border-radius:50%;border:0;
+  background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;padding:0;opacity:0;transform:scale(.7);
+  transition:opacity .16s,transform .18s var(--spring);box-shadow:0 2px 6px rgba(0,0,0,.28);z-index:2}
+.gwrap:hover .gdel,.gwrap:focus-within .gdel{opacity:1;transform:scale(1)}
+.gdel:hover{background:#000}
+
+/* 按钮行：抵消兼容层的负边距，避免与上方内容粘连 */
+#p-color .row,#p-assets .row,#inspPop .row{margin-top:6px!important}
+#p-color .row + .grp{margin-top:16px}
+#p-assets .row + .grp{margin-top:16px}
+#inspPop .row{margin-top:10px!important}
+.row > .hint{margin-left:8px}
+
 /* 字体选择列表 */
 .fontlist{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 10px}
 .fontitem{border:0;border-radius:999px;padding:8px 14px;font:inherit;font-size:13px;

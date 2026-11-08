@@ -573,6 +573,38 @@ $('fontFile').onchange=function(){
 renderFonts();
 """
 
+
+# 主视觉控件已移除，脚本引用加容错
+js = must("$('hero').querySelectorAll('button').forEach(b=>b.onclick=()=>{if(b.dataset.v==='image'&&!hasImg){$('file').click(); return} morph(); S.hero=b.dataset.v; sync()});",
+          "var _heroBox=$('hero'); if(_heroBox) _heroBox.querySelectorAll('button').forEach(b=>b.onclick=()=>{if(b.dataset.v==='image'&&!hasImg){$('file').click(); return} morph(); S.hero=b.dataset.v; sync()});",
+          js, 'hero bind')
+
+js = must("  const hk=S.hero==='auto'?['type','arch','sun','stack'][S.seed%4]:S.hero; $('hero').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===hk));",
+          "  const hk=S.hero==='auto'?['type','arch','sun','stack'][S.seed%4]:S.hero; var _hb=$('hero'); if(_hb) _hb.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===hk));",
+          js, 'hero sync')
+
+# 素材支持删除
+MINE_DEL = r"""
+// ---- 素材删除
+function delAsset(idx){
+  var g=GALLERY[idx]; if(!g) return;
+  pauseAllVideos();
+  if(g.el){ try{g.el.pause(); g.el.remove()}catch(e){} }
+  if(g.timer) clearInterval(g.timer);
+  GALLERY.splice(idx,1);
+  if(HERO_IMG===g.img){ HERO_IMG=null; if(GALLERY.length) applyGallery(0); else { G.setImage(null); hasImg=false; S.hero='type'; morph(); sync() } }
+  else { morph(); sync() }
+  if(typeof refreshPopImage==='function') refreshPopImage();
+  renderGallery();
+  if($('assetMsg')) $('assetMsg').textContent='已删除该素材。';
+}
+"""
+
+# 被移除的元素：绑定前判空
+js = must("$('clear').onclick=clearImg; $('clear2').onclick=clearImg;",
+          "if($('clear')) $('clear').onclick=clearImg; if($('clear2')) $('clear2').onclick=clearImg;",
+          js, 'clear2 guard')
+
 # ------------------------------------------------------------ 多图 + 全屏演示
 MULTI_IMG = r"""
 
@@ -591,13 +623,21 @@ function renderGallery(){
   if(!GALLERY.length){box.hidden=true; return}
   box.hidden=false;
   GALLERY.forEach(function(g,i){
+    var wrap=document.createElement('div'); wrap.className='gwrap';
     var b=document.createElement('button');
     b.type='button'; b.className='gitem'+(g.isVideo?' vid':'');
     b.setAttribute('aria-label','第 '+(i+1)+' 个'+(g.isVideo?'（视频）':''));
     b.style.backgroundImage='url('+g.src+')';
     if(HERO_IMG===g.img) b.setAttribute('aria-pressed','true');
     b.onclick=function(){ applyGallery(i) };
-    box.appendChild(b);
+    var x=document.createElement('button');
+    x.type='button'; x.className='gdel';
+    x.setAttribute('aria-label','删除第 '+(i+1)+' 个素材');
+    x.innerHTML='<svg viewBox="0 0 12 12" width="9" height="9" aria-hidden="true">'
+      +'<path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg>';
+    x.onclick=function(e){ e.stopPropagation(); delAsset(i) };
+    wrap.appendChild(b); wrap.appendChild(x);
+    box.appendChild(wrap);
   });
 }
 function applyGallery(i){
@@ -727,8 +767,7 @@ $('file').setAttribute('multiple','');
 $('file').onchange=onPick;
 if($('filev')){ $('filev').setAttribute('multiple',''); $('filev').onchange=onPick; }
 if($('fileall')){ $('fileall').setAttribute('multiple',''); $('fileall').onchange=onPick; }
-if($('popFile')){ $('popFile').setAttribute('multiple',''); $('popFile').onchange=onPick; }
-if($('popFileV')){ $('popFileV').setAttribute('multiple',''); $('popFileV').onchange=onPick; }
+if($('popFileAll')){ $('popFileAll').setAttribute('multiple',''); $('popFileAll').onchange=onPick; }
 function onPick(ev){
   var input=ev&&ev.target?ev.target:$('file');
   var fs=[].slice.call(input.files||[]); if(!fs.length) return;
@@ -766,7 +805,8 @@ clearImg=function(){
   GALLERY.forEach(function(g){ if(g.timer) clearInterval(g.timer); if(g.el){try{g.remove()}catch(e){}} });
   GALLERY=[]; HERO_IMG=null; _clearImg(); renderGallery();
 };
-$('clear').onclick=clearImg; $('clear2').onclick=clearImg;
+if($('clear')) $('clear').onclick=clearImg;
+if($('clear2')) $('clear2').onclick=clearImg;
 renderGallery();
 """
 
@@ -805,7 +845,7 @@ _TAIL = "G.drawBest(20261108,{tier:'SSR'}); sync(); loadFonts().then(()=>{reques
 if js.count(_TAIL) != 1:
     fail('IIFE tail anchor not found exactly once')
 js = js.replace(_TAIL, "G.drawBest(20261108,{tier:'SSR'}); sync(); loadFonts().then(()=>{requestAnimationFrame(loop)});\n"
-                        + MULTI_IMG + '\n' + FULLSCREEN + '\n' + CELLIMG_UI + '\n' + CTX_UI + '\n' + FONTS_UI + "\n})();")
+                        + MULTI_IMG + '\n' + FULLSCREEN + '\n' + CELLIMG_UI + '\n' + CTX_UI + '\n' + FONTS_UI + '\n' + MINE_DEL + "\n})();")
 
 for bad, label in ((r'\beval\s*\(', 'eval'), (r'new\s+Function\s*\(', 'new Function'),
                    (r'\bfetch\s*\(', 'fetch'), (r'XMLHttpRequest', 'XHR'),
@@ -855,9 +895,7 @@ OLD_IMG_GRP = ('<div class="grp"><span class="lbl">主视觉图片<small>可多�
 NEW_IMG_GRP = ('<div class="grp"><span class="lbl">上传素材<small>照片与视频可混选</small></span>'
                '<div class="gallery" id="gallery" hidden></div>'
                '<div class="row"><img class="thumb" id="thumb" alt="" hidden>'
-               '<label class="btn sm" for="file" data-kind="image">选照片</label>'
-               '<label class="btn sm" for="filev" data-kind="video">选视频</label>'
-               '<label class="btn sm" for="fileall" data-kind="all">图片+视频</label>'
+               '<label class="btn sm" for="fileall" data-kind="all">上传图片或视频</label>'
                '<input type="file" id="fileall" accept="image/png,image/jpeg,image/webp,video/mp4,video/quicktime,video/webm,video/x-m4v" multiple hidden>'
                '<input type="file" id="file" accept="image/png,image/jpeg,image/webp" multiple hidden>'
                '<input type="file" id="filev" accept="video/mp4,video/quicktime,video/webm,video/x-m4v" multiple hidden>'
@@ -1024,14 +1062,22 @@ body_html = body_html[:_after] + '\n          ' + _font_grp + body_html[_after:]
 _old_row = '<div class="popimgs" id="popImgList"></div></div>'
 _new_row = ('<div class="popimgs" id="popImgList"></div>'
             '<div class="row" style="margin-top:8px">'
-            '<label class="btn sm" for="popFile">上传照片</label>'
-            '<label class="btn sm" for="popFileV">上传视频</label>'
-            '<input type="file" id="popFile" accept="image/png,image/jpeg,image/webp" multiple hidden>'
-            '<input type="file" id="popFileV" accept="video/mp4,video/quicktime,video/webm,video/x-m4v" multiple hidden>'
+            '<label class="btn sm" for="popFileAll">上传素材</label>'
+            '<input type="file" id="popFileAll" accept="image/png,image/jpeg,image/webp,video/mp4,video/quicktime,video/webm,video/x-m4v" multiple hidden>'
             '</div></div>')
 if _old_row not in body_html:
     fail('pop row anchor missing')
 body_html = body_html.replace(_old_row, _new_row)
+
+
+# ---- 去掉「主视觉」整组（已被素材 + 单格编辑覆盖）
+import re as _re3
+_mh = _re3.search(r'<div class="grp"><span class="lbl">主视觉</span>.*?</div></div>', body_html, _re3.S)
+if not _mh:
+    fail('hero group not found in markup')
+body_html = body_html[:_mh.start()] + body_html[_mh.end():]
+
+# 隐藏残留的 hero 控件引用（脚本里若找不到元素需容错）
 
 # 全屏演示按钮
 body_html = body_html.replace(
