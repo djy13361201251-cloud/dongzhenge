@@ -102,6 +102,17 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border-width:3px}
 .prog{height:3px;border-radius:3px}
 .prog span{border-radius:3px}
 .thumb{border:0;border-radius:11px}
+/* 字体选择列表 */
+.fontlist{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 10px}
+.fontitem{border:0;border-radius:999px;padding:8px 14px;font:inherit;font-size:13px;
+  background:var(--hover);color:var(--ink);cursor:pointer;max-width:100%;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:background .18s}
+.fontitem:hover{background:#E7DCD2}
+.fontitem[aria-pressed="true"]{background:var(--ink);color:#fff}
+/* 素材面板：上传区更宽松 */
+#p-assets .gallery{grid-template-columns:repeat(4,1fr)}
+#p-assets .row{gap:8px}
+
 /* 上下文面板：格子编辑不再是浮层，改为右侧主视图 */
 .inspview{padding:14px 18px 18px;display:flex;flex-direction:column;gap:12px;
   animation:paneIn .32s var(--soft) both}

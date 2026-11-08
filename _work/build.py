@@ -408,10 +408,8 @@ CELLIMG_UI = r"""
 // ---- 每格素材：在弹窗里选这一格用哪个上传素材
 function refreshPopImage(){
   var row=$('popImgRow'); if(!row) return;
+  row.hidden = false;          // 常驻：点格子即可选素材或直接上传
   var ty=G.getTypes()[SEL];
-  var show = (ty==='img');
-  row.hidden = !show;
-  if(!show) return;
   var box=$('popImgList'); box.innerHTML='';
   GALLERY.forEach(function(g,gi){
     var b=document.createElement('button');
@@ -424,7 +422,8 @@ function refreshPopImage(){
       pushUndo();
       G.setCellImage(SEL, g.img);
       if(g.el){ try{g.el.play()}catch(e){} }
-      syncPop(); refreshPopImage();
+      if(G.getTypes()[SEL]!=='img'){ Object.assign(over(SEL),{type:'img'}) }
+      sync(); syncPop(); refreshPopImage();
     };
     box.appendChild(b);
   });
@@ -516,6 +515,63 @@ js = must("cv.addEventListener('click',e=>{if(cv.__skipClick) return; const i=hi
           js, 'blank click closes')
 
 # 把 CTX_UI 注入
+
+
+# ============================================================ 字体上传 + 素材页精简
+# 渲染层：允许替换主字族
+js = must("function fam(){return isCute()?'PoppinsT':'InterD'}",
+          "let CUSTOM_FONT=null;\nfunction fam(){return CUSTOM_FONT||(isCute()?'PoppinsT':'InterD')}",
+          js, 'custom font family')
+js = must("setImage:img=>{IMG=img;",
+          "setFont:f=>{CUSTOM_FONT=f||null},getFont:()=>CUSTOM_FONT,"
+          "setImage:img=>{IMG=img;",
+          js, 'font api')
+
+FONTS_UI = r"""
+// ---- 字体上传：注册自定义字族，全局替换主字体
+var FONTS=[];
+function renderFonts(){
+  var box=$('fontList'); if(!box) return;
+  box.innerHTML='';
+  var items=[{name:'默认',fam:null}].concat(FONTS);
+  items.forEach(function(it,idx){
+    var b=document.createElement('button');
+    b.type='button'; b.className='fontitem';
+    b.textContent=it.name;
+    if(it.fam) b.style.fontFamily=it.fam;
+    if((G.getFont()||null)===(it.fam||null)) b.setAttribute('aria-pressed','true');
+    b.onclick=function(){
+      G.setFont(it.fam||null);
+      renderFonts();
+      if(typeof loadFonts==='function') loadFonts();
+      sync();
+    };
+    box.appendChild(b);
+  });
+}
+$('fontFile').onchange=function(){
+  var f=this.files&&this.files[0]; if(!f) return;
+  var r=new FileReader();
+  r.onload=function(){
+    var fam='F'+(FONTS.length+1)+'_'+Date.now().toString(36);
+    var ff=new FontFace(fam, 'url('+r.result+')');
+    ff.load().then(function(loaded){
+      document.fonts.add(loaded);
+      FONTS.push({name:f.name.replace(/\.[^.]+$/,''), fam:fam});
+      G.setFont(fam);
+      renderFonts();
+      if(typeof loadFonts==='function') loadFonts();
+      sync();
+      $('fontMsg').textContent='已载入「'+f.name+'」';
+    }).catch(function(){
+      $('fontMsg').textContent='这个字体文件读不了，换 ttf / otf / woff 试试';
+    });
+    $('fontFile').value='';
+  };
+  r.readAsDataURL(f);
+};
+renderFonts();
+"""
 
 # ------------------------------------------------------------ 多图 + 全屏演示
 MULTI_IMG = r"""
@@ -671,6 +727,8 @@ $('file').setAttribute('multiple','');
 $('file').onchange=onPick;
 if($('filev')){ $('filev').setAttribute('multiple',''); $('filev').onchange=onPick; }
 if($('fileall')){ $('fileall').setAttribute('multiple',''); $('fileall').onchange=onPick; }
+if($('popFile')){ $('popFile').setAttribute('multiple',''); $('popFile').onchange=onPick; }
+if($('popFileV')){ $('popFileV').setAttribute('multiple',''); $('popFileV').onchange=onPick; }
 function onPick(ev){
   var input=ev&&ev.target?ev.target:$('file');
   var fs=[].slice.call(input.files||[]); if(!fs.length) return;
@@ -699,6 +757,7 @@ function onPick(ev){
     applyGallery(Math.min(first, GALLERY.length-1));
     st.textContent=failed.length?('有 '+failed.length+' 个文件读不了：'+failed.join('、')):'';
     input.value='';
+    if(typeof refreshPopImage==='function') refreshPopImage();
   }
 }
 var _clearImg=clearImg;
@@ -746,7 +805,7 @@ _TAIL = "G.drawBest(20261108,{tier:'SSR'}); sync(); loadFonts().then(()=>{reques
 if js.count(_TAIL) != 1:
     fail('IIFE tail anchor not found exactly once')
 js = js.replace(_TAIL, "G.drawBest(20261108,{tier:'SSR'}); sync(); loadFonts().then(()=>{requestAnimationFrame(loop)});\n"
-                        + MULTI_IMG + '\n' + FULLSCREEN + '\n' + CELLIMG_UI + '\n' + CTX_UI + "\n})();")
+                        + MULTI_IMG + '\n' + FULLSCREEN + '\n' + CELLIMG_UI + '\n' + CTX_UI + '\n' + FONTS_UI + "\n})();")
 
 for bad, label in ((r'\beval\s*\(', 'eval'), (r'new\s+Function\s*\(', 'new Function'),
                    (r'\bfetch\s*\(', 'fetch'), (r'XMLHttpRequest', 'XHR'),
@@ -871,6 +930,108 @@ _last = body_html.rfind(_aside_close)
 body_html = body_html[:_last] + '</div>\n      ' + body_html[_last:]
 
 # 原 pop 里的那些 id 在面板里继续可用；补一个返回按钮的绑定
+
+
+# ============================================================ 页签重组：任务导向
+# 版式 / 配色 / 文案 / 素材；「更多」解散：动画并入版式，保存并入顶部
+body_html = body_html.replace(
+    '<button type="button" role="tab" data-p="p-text">内容</button>',
+    '<button type="button" role="tab" data-p="p-text">文案</button>'
+    '<button type="button" role="tab" data-p="p-assets">素材</button>')
+if 'data-p="p-assets"' not in body_html:
+    fail('assets tab not injected')
+
+# 去掉「更多」页签
+body_html = body_html.replace(
+    '<button type="button" role="tab" data-p="p-more">更多</button>', '')
+if '数据-p="p-more"' in body_html or 'data-p="p-more">更多' in body_html:
+    fail('more tab still present')
+
+# 把「动画」两组从 p-more 剪出来，移进 p-layout 末尾
+import re as _re2
+_am = _re2.search(r'<div class="grp"><span class="lbl">动画</span>.*?id="grain"[^>]*>\s*</div>\s*</div>\s*</div>', body_html, _re2.S)
+if not _am:
+    fail('animation group not found')
+_anim = _am.group(0)
+body_html = body_html[:_am.start()] + body_html[_am.end():]
+
+# 整个 p-more 面板删掉
+_m = _re2.search(r'<div class="pane" id="p-more"[^>]*>.*?</div>\s*</div>\s*</div>', body_html, _re2.S)
+if not _m:
+    fail('p-more pane not found')
+body_html = body_html[:_m.start()] + body_html[_m.end():]
+
+# 动画组插到 p-layout 的收尾（版式面板最后一个 grp 之后）
+_pl = body_html.find('<div class="pane" id="p-layout"')
+if _pl < 0:
+    fail('p-layout not found')
+# 插到 p-layout 内部末尾：找到 p-layout 开始后的第一个 pane 边界
+_pc = body_html.find('<div class="pane" id="p-color"', _pl)
+if _pc < 0:
+    fail('p-color not found')
+_layout_close = body_html.rfind('</div>', _pl, _pc)
+if _layout_close < 0:
+    fail('p-layout close not found')
+body_html = body_html[:_layout_close] + '          ' + _anim + '\n        ' + body_html[_layout_close:]
+
+# 上传素材从「文案」移到新的「素材」面板
+_assets_grp_start = body_html.find('<div class="grp"><span class="lbl">上传素材')
+if _assets_grp_start < 0:
+    fail('asset group not found')
+_assets_grp_end = body_html.find('</div></div>', _assets_grp_start)
+if _assets_grp_end < 0:
+    fail('asset group end not found')
+_assets_grp_end += len('</div></div>')
+_assets_block = body_html[_assets_grp_start:_assets_grp_end]
+body_html = body_html[:_assets_grp_start] + body_html[_assets_grp_end:]
+
+# 新素材面板插在文案面板之前
+_pt = body_html.find('<div class="pane" id="p-text"')
+body_html = (body_html[:_pt]
+             + '<div class="pane" id="p-assets" hidden>' + _assets_block + '</div>\n        '
+             + body_html[_pt:])
+
+# 保存作品按钮移到顶栏（导出旁）
+_save_btn = ('<div class="grp"><span class="lbl">保存作品</span>'
+             '<button class="btn sm" id="tool" type="button" style="align-self:flex-start">'
+             '保存当前帧到相册</button></div>')
+body_html = body_html.replace(_save_btn, '')
+body_html = body_html.replace(
+    '<button class="btn" id="png" type="button">导出 PNG</button>',
+    '<button class="btn" id="tool" type="button">存到相册</button>'
+    '<button class="btn" id="png" type="button">导出 PNG</button>')
+if 'id="tool"' not in body_html:
+    fail('save button not moved')
+
+
+# ---- 素材面板只留上传；格子面板内加素材选择 + 直接上传
+# 1) 素材面板：去掉动画（已移走），保留上传组即可（已在上一步完成）
+# 2) 字体选择放进「文案」面板顶部
+_font_grp = ('<div class="grp"><span class="lbl">字体<small>上传 ttf / otf / woff</small></span>'
+             '<div class="fontlist" id="fontList"></div>'
+             '<div class="row">'
+             '<label class="btn sm" for="fontFile">上传字体</label>'
+             '<input type="file" id="fontFile" accept=".ttf,.otf,.woff,.woff2,font/ttf,font/otf,font/woff,font/woff2" hidden>'
+             '<span class="hint" id="fontMsg"></span>'
+             '</div></div>')
+_pt2 = body_html.find('<div class="pane" id="p-text"')
+if _pt2 < 0:
+    fail('p-text not found')
+_after = body_html.find('>', _pt2) + 1
+body_html = body_html[:_after] + '\n          ' + _font_grp + body_html[_after:]
+
+# 3) 格子面板里的素材行：加「直接上传」入口
+_old_row = '<div class="popimgs" id="popImgList"></div></div>'
+_new_row = ('<div class="popimgs" id="popImgList"></div>'
+            '<div class="row" style="margin-top:8px">'
+            '<label class="btn sm" for="popFile">上传照片</label>'
+            '<label class="btn sm" for="popFileV">上传视频</label>'
+            '<input type="file" id="popFile" accept="image/png,image/jpeg,image/webp" multiple hidden>'
+            '<input type="file" id="popFileV" accept="video/mp4,video/quicktime,video/webm,video/x-m4v" multiple hidden>'
+            '</div></div>')
+if _old_row not in body_html:
+    fail('pop row anchor missing')
+body_html = body_html.replace(_old_row, _new_row)
 
 # 全屏演示按钮
 body_html = body_html.replace(
