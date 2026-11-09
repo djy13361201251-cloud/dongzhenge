@@ -662,7 +662,7 @@ function cell(ctx,type,R,t,it,fill,i){
       const e=cute?spring(it,1.6,0.45):E.expoOut(P(it,0,0.9));
       ctx.save(); ctx.translate(cx,cy); ctx.scale(e,e);
       if(cute){const R0=m*0.34; ctx.fillStyle=ac; ctx.beginPath(); ctx.arc(0,0,R0,0,TAU); ctx.fill(); const bl=((t+i*0.7)%3.1)>2.98?0.12:1; ctx.fillStyle=onCol(ac); ctx.beginPath(); ctx.ellipse(-R0*0.33,-R0*0.1,R0*0.09,R0*0.13*bl,0,0,TAU); ctx.ellipse(R0*0.33,-R0*0.1,R0*0.09,R0*0.13*bl,0,0,TAU); ctx.fill(); ctx.strokeStyle=onCol(ac); ctx.lineWidth=R0*0.08; ctx.lineCap='round'; ctx.beginPath(); ctx.arc(0,R0*0.1,R0*0.28,0.2*Math.PI,0.8*Math.PI); ctx.stroke()}
-      else {const L=m*0.3, nud=Math.sin(t*3)*m*0.03; ctx.translate(nud,0); ctx.strokeStyle=fg; ctx.lineWidth=Math.max(4,m*0.05); ctx.lineCap='square'; ctx.beginPath(); ctx.moveTo(-L,0); ctx.lineTo(L,0); ctx.moveTo(L*0.35,-L*0.65); ctx.lineTo(L,0); ctx.lineTo(L*0.35,L*0.65); ctx.stroke()}
+      else {const L=m*0.3, nud=Math.sin(t*3)*m*0.03; ctx.translate(nud,0); ctx.strokeStyle=fg; const lw=Math.max(4,m*0.05); ctx.lineWidth=lw; ctx.miterLimit=10; ctx.lineCap='butt'; ctx.lineJoin='miter'; ctx.beginPath(); ctx.moveTo(-L,0); ctx.lineTo(L-lw*0.5,0); ctx.stroke(); ctx.beginPath(); ctx.moveTo(L*0.35,-L*0.65); ctx.lineTo(L,0); ctx.lineTo(L*0.35,L*0.65); ctx.stroke()}
       ctx.restore(); break}
     case 'sparkle':{
       const r=rng(i*97+1); const n=5;
@@ -1674,47 +1674,44 @@ function playFromPath(path,cb){
   setTimeout(function(){ if(!ok){ if(v.readyState>=2) good(); else { ok=true; try{v.remove()}catch(e){} cb(new Error('超时')) } } },6000);
   v.src=path; try{ var p=v.play(); if(p&&p.catch) p.catch(function(){}) }catch(e){}
 }
+function playP(path){ return new Promise(function(res,rej){ playFromPath(path,function(e,it){ e?rej(e):res(it) }) }) }
+function readAsMp4URL(f){ return new Promise(function(res,rej){ var r=new FileReader();
+  r.onload=function(){ res(String(r.result).replace(/^data:[^;,]*/,'data:video/mp4')) }; r.onerror=function(){ rej(new Error('读取失败')) }; r.readAsDataURL(f) }) }
 async function readVideoViaTemp(f, cb){
   var why=[];
+  if(typeof st!=='undefined') st.textContent='正在读取视频…';
+  // ① 整个写成临时文件 → saveFile 移到持久目录 → 用持久文件句柄播放（不依赖 appendFile）
+  try{
+    if(typeof MT.writeTempFile==='function'){
+      var du=await readAsMp4URL(f);
+      var t=await MT.writeTempFile({data:du}); du=null;
+      if(!t||!t.filePath) throw new Error('临时文件写入失败');
+      if(typeof MT.saveFile==='function'){
+        try{
+          var ok=await fsPrep();
+          var sv=await MT.saveFile(ok?{tempFilePath:t.filePath,filePath:FS_ROOT+'/media/v'+Date.now()+'.mp4'}:{tempFilePath:t.filePath});
+          var sp=sv&&(sv.savedFilePath||sv.filePath);
+          if(sp){ LIVE_MEDIA[sp]=1; try{ return cb(null,await playP(sp)) }catch(e){ why.push('持久文件'+e.message) } }
+          else why.push('saveFile 无返回路径');
+        }catch(e){ why.push('saveFile '+errText(e)) }
+      }
+      try{ return cb(null,await playP(t.filePath)) }catch(e){ why.push('临时文件'+e.message) }
+    } else why.push('无 writeTempFile');
+  }catch(e){ why.push(errText(e)) }
+  // ② 备选：分片写入（小片 48KB）
   try{
     if(await fsPrep()){
-      var info=null; try{ info=await MT.getFileStorageInfo() }catch(e){}
-      // 清掉以前上传的视频，腾空间
-      if(typeof MT.readDir==='function'&&typeof MT.unlink==='function'){
-        try{ var d=await MT.readDir({dirPath:FS_ROOT+'/media'}); var fl=(d&&d.files)||[];
-          for(var q=0;q<fl.length;q++){ var nm=typeof fl[q]==='string'?fl[q]:(fl[q].name||fl[q].path||'');
-            if(!nm) continue; if(nm.indexOf('/')<0) nm=FS_ROOT+'/media/'+nm;
-            if(!LIVE_MEDIA[nm]) try{ await MT.unlink({filePath:nm}) }catch(e){} } }catch(e){}
-        try{ info=await MT.getFileStorageInfo() }catch(e){}
+      var path=FS_ROOT+'/media/v'+Date.now()+'.mp4', step=48*1024;
+      for(var pos=0;pos<f.size;pos+=step){
+        var b64=await sliceB64(f,pos,Math.min(f.size,pos+step));
+        if(pos===0) await MT.writeFile({filePath:path,data:b64,encoding:'base64'});
+        else await MT.appendFile({filePath:path,data:b64,encoding:'base64'});
       }
-      var free=info&&info.limitBytes?info.limitBytes-(info.usedBytes||0):Infinity;
-      if(f.size>free){ why.push('超过小工具存储空间（剩余约 '+Math.max(0,free/1048576).toFixed(0)+'MB）') }
-      else {
-        var path=FS_ROOT+'/media/v'+Date.now()+'.mp4';
-        var step=Math.max(3*1024,Math.floor(FS_CHUNK/4)*3);
-        try{
-          for(var pos=0;pos<f.size;pos+=step){
-            var b64=await sliceB64(f,pos,Math.min(f.size,pos+step));
-            if(pos===0) await MT.writeFile({filePath:path,data:b64,encoding:'base64'});
-            else await MT.appendFile({filePath:path,data:b64,encoding:'base64'});
-            if(typeof st!=='undefined') st.textContent='正在读取视频 '+Math.round(Math.min(1,(pos+step)/f.size)*100)+'%';
-          }
-          LIVE_MEDIA[path]=1;
-          return playFromPath(path,function(e,it){ if(!e) return cb(null,it); why.push('文件句柄'+e.message); tempWay() });
-        }catch(e){ why.push(errText(e)); try{ await MT.unlink({filePath:path}) }catch(e2){} }
-      }
-    } else     why.push('文件系统不可用');
-  }catch(e){ why.push(errText(e)) }
-  tempWay();
-  function tempWay(){
-    if(typeof MT.writeTempFile!=='function') return cb(new Error(why.join('；')));
-    var r=new FileReader(); r.onerror=function(){ cb(new Error('读取失败')) };
-    r.onload=function(){ var du=String(r.result).replace(/^data:[^;,]*/,'data:video/mp4'); MT.writeTempFile({data:du}).then(function(t){
-      if(!t||!t.filePath) return cb(new Error(why.concat('临时文件写入失败').join('；')));
-      playFromPath(t.filePath,function(e,it){ e?cb(new Error(why.concat('临时文件'+e.message).join('；'))):cb(null,it) });
-    },function(e){ cb(new Error(why.concat(errText(e)).join('；'))) }) };
-    r.readAsDataURL(f);
-  }
+      LIVE_MEDIA[path]=1;
+      try{ return cb(null,await playP(path)) }catch(e){ why.push('分片文件'+e.message) }
+    }
+  }catch(e){ why.push('分片写入 '+errText(e)) }
+  cb(new Error(why.join('；')));
 }
 // 主路径：视频元素直连。成功即可原帧率完整播放。
 function readVideoNative(f, cb){
