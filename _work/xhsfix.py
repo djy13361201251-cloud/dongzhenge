@@ -36,7 +36,7 @@ if(IN_XHS){ var mb4=document.getElementById('mp4'); if(mb4) mb4.textContent='导
 if(IN_XHS){ ['fileall','popFileAll'].forEach(function(id){ var e=document.getElementById(id); if(!e) return; e.setAttribute('accept','image/*');
   var lb=e.parentNode; if(lb&&lb.firstChild&&lb.firstChild.nodeType===3) lb.firstChild.nodeValue=id==='fileall'?'上传图片':'上传图片';
   // 视频单独一个入口
-  var vl=document.createElement('label'); vl.className='btn sm filebtn'; vl.appendChild(document.createTextNode('上传视频'));
+  var vl=document.createElement('label'); vl.className='btn sm filebtn'; vl.appendChild(document.createTextNode('上传视频')); var bt=document.createElement('span'); bt.className='beta'; bt.textContent='测试中'; vl.appendChild(bt); vl.title='小红书内视频素材功能测试中，可能读取失败';
   var vi=document.createElement('input'); vi.type='file'; vi.id=id+'V'; vi.className='fileov'; vi.setAttribute('accept','video/*');
   vl.appendChild(vi); if(lb&&lb.parentNode) lb.parentNode.insertBefore(vl, lb.nextSibling);
   setTimeout(function(){ vi.onchange=function(ev){ if(id==='popFileAll'){ Object.defineProperty(ev,'target',{value:{id:'popFileAll',files:vi.files,set value(x){vi.value=x}}}) } onPick(ev) } },0) }) }""",

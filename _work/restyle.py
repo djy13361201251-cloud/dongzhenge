@@ -289,6 +289,10 @@ body.stageonly #fs{position:fixed!important;display:inline-flex!important;left:5
   -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);font-size:15px}
 body.stageonly .toast{bottom:96px;bottom:calc(96px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)))}
 
+/* 小红书内「上传视频」测试中角标 */
+.filebtn .beta{display:inline-block;margin-left:4px;padding:0 8px;height:20px;line-height:20px;border-radius:10px;
+  background:#FFD43B;color:#141414;font-size:11px;font-weight:700;vertical-align:middle}
+
 /* 浮动提示：手机上状态栏文字不可见，消息从底部浮出 */
 .toast{position:fixed;left:16px;right:16px;bottom:24px;bottom:calc(24px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
   z-index:200;margin:0 auto;max-width:480px;padding:12px 16px;border-radius:16px;background:rgba(20,20,20,.92);color:#fff;
