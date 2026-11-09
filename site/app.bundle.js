@@ -1128,7 +1128,7 @@ const st=$('status'), prog=$('prog');
 function stamp(){const d=new Date(); return `${d.getMonth()+1}${String(d.getDate()).padStart(2,'0')}_${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}`}
 $('png').onclick=async()=>{st.textContent='正在生成图片…'; await loadFonts(); G.render(ctx,curT()); const blob=await new Promise(r=>cv.toBlob(r,'image/png')); try{const r=await saveFile(`动真格_${S.aspect.replace(':','x')}_${stamp()}.png`,blob); st.textContent=r==='saved'?'已导出当前帧。':(r==='local'?'已下载到本地（浏览器预览模式）。':'已取消保存。')}catch(e){st.textContent='导出失败：'+(e.message||e.code)}};
 $('mp4').onclick=async()=>{
-  if(exporting) return; await waitMT(IN_XHS?2000:0);
+  if(exporting) return; await waitMT(IN_XHS?2000:0); if(IN_XHS) return exportGIF();
   if(!window.VideoEncoder){ return recordMP4() }
   await loadFonts(); exporting=true; $('mp4').disabled=true; prog.style.width='0%';
   try{
@@ -1171,6 +1171,76 @@ async function deliverMP4(blob){
     catch(e){ errs.push(errText(e)) }
   }
   throw new Error('小红书暂未开放视频存相册（'+(errs[errs.length-1]||'不支持')+'）。PNG 可正常保存；视频请在网页版导出 MP4');
+}
+// ---- GIF 动图编码（小红书相册只收图片：用会动的 GIF 代替 MP4）
+function GifWriter(w,h){
+  var chunks=[], buf=new Uint8Array(1<<16), n=0;
+  function flush(){ chunks.push(buf.slice(0,n)); n=0 }
+  function b(x){ if(n===buf.length) flush(); buf[n++]=x }
+  function w16(x){ b(x&255); b((x>>8)&255) }
+  function str(t){ for(var i=0;i<t.length;i++) b(t.charCodeAt(i)) }
+  this.header=function(pal){ str('GIF89a'); w16(w); w16(h); b(0xF7); b(0); b(0);
+    for(var i=0;i<256;i++){ var c=pal[i]||0; b((c>>16)&255); b((c>>8)&255); b(c&255) }
+    b(0x21); b(0xFF); b(11); str('NETSCAPE2.0'); b(3); b(1); w16(0); b(0) };
+  this.frame=function(idx,delay,tr){
+    b(0x21); b(0xF9); b(4); b(tr?5:4); w16(delay); b(tr?255:0); b(0);
+    b(0x2C); w16(0); w16(0); w16(w); w16(h); b(0);
+    // LZW
+    var min=8, clear=256, eoi=257, size=min+1, next=258, dict=new Map(), cur=0, bits=0, out=[], blk=[];
+    function emit(code){ cur|=code<<bits; bits+=size; while(bits>=8){ blk.push(cur&255); cur>>=8; bits-=8; if(blk.length===255){ out.push(blk); blk=[] } } }
+    b(min); emit(clear);
+    var pre=idx[0];
+    for(var i=1;i<idx.length;i++){ var k=idx[i], key=pre*256+k, v=dict.get(key);
+      if(v!==undefined){ pre=v; continue }
+      emit(pre);
+      if(next<4096){ dict.set(key,next++); if(next>(1<<size)&&size<12) size++ }
+      else { emit(clear); dict.clear(); next=258; size=min+1 }
+      pre=k }
+    emit(pre); emit(eoi); if(bits>0) blk.push(cur&255); if(blk.length) out.push(blk);
+    for(var j=0;j<out.length;j++){ b(out[j].length); for(var q=0;q<out[j].length;q++) b(out[j][q]) }
+    b(0) };
+  this.end=function(){ b(0x3B); flush(); return new Blob(chunks,{type:'image/gif'}) };
+}
+async function exportGIF(){
+  if(exporting) return;
+  await loadFonts(); exporting=true; $('mp4').disabled=true; prog.style.width='0%';
+  try{
+    var sz=G.size(), W=540, H=Math.round(540*sz[1]/sz[0]); H-=H%2;
+    var fps=12, n=Math.round(S.dur*fps), delay=Math.round(100/fps);
+    var c=document.createElement('canvas'); c.width=W; c.height=H; var g=c.getContext('2d');
+    var grain0=S.grain; S.grain=0;   // 动态颗粒每帧都变，GIF 压不动，导出时临时关掉
+    function grab(t){ G.render(ctx,t); g.drawImage(cv,0,0,W,H); return g.getImageData(0,0,W,H).data }
+    // 调色板：抽 8 帧做 15 位色直方图，取最常用的 256 色（海报是平涂色块，效果稳定）
+    var hist=new Uint32Array(32768);
+    for(var s0=0;s0<8;s0++){ var d=grab(S.dur*s0/8); for(var p=0;p<d.length;p+=8) hist[((d[p]>>3)<<10)|((d[p+1]>>3)<<5)|(d[p+2]>>3)]++ }
+    var keys=[]; for(var k=0;k<32768;k++) if(hist[k]) keys.push(k);
+    keys.sort(function(a,b2){ return hist[b2]-hist[a] }); keys=keys.slice(0,255);
+    var pal=keys.map(function(k){ return (((k>>10)&31)<<19)|(((k>>5)&31)<<11)|((k&31)<<3) });
+    var lut=new Int16Array(32768).fill(-1);
+    function near(key){ var r=(key>>10)&31,gg=(key>>5)&31,bb=key&31,best=0,bd=1e9;
+      for(var i=0;i<keys.length;i++){ var q=keys[i],dr=((q>>10)&31)-r,dg=((q>>5)&31)-gg,db=(q&31)-bb,dd=dr*dr*3+dg*dg*4+db*db*2; if(dd<bd){bd=dd;best=i; if(!dd) break} }
+      return best }
+    var gw=new GifWriter(W,H); gw.header(pal);
+    var idx=new Uint8Array(W*H), prev=new Uint8Array(W*H), out=new Uint8Array(W*H);
+    for(var f=0;f<n;f++){
+      var px=grab(f/fps);
+      for(var i2=0,p2=0;i2<idx.length;i2++,p2+=4){ var key=((px[p2]>>3)<<10)|((px[p2+1]>>3)<<5)|(px[p2+2]>>3); var v=lut[key]; if(v<0){ v=near(key); lut[key]=v } idx[i2]=v }
+      // 与上一帧相同的像素标成透明，只写变化部分
+      if(f===0){ gw.frame(idx,delay,false) }
+      else { for(var j=0;j<idx.length;j++) out[j]=idx[j]===prev[j]?255:idx[j]; gw.frame(out,delay,true) }
+      var tmp=prev; prev=idx; idx=tmp;
+      if(f%3===0){ prog.style.width=(f/n*100).toFixed(1)+'%'; st.textContent='正在生成动图 '+f+' / '+n+' 帧'; await new Promise(function(r){setTimeout(r,0)}) }
+    }
+    S.grain=grain0;
+    var blob=gw.end(); prog.style.width='100%';
+    var mb=(blob.size/1048576).toFixed(1);
+    st.textContent='动图已生成（'+mb+' MB），正在保存到相册…';
+    var data=await blobToDataURL(blob);
+    var r=await MT.saveImageToPhotosAlbum({filePath:data});
+    if(r&&r.errMsg&&/fail/i.test(r.errMsg)) throw r;
+    st.textContent='已保存动图到相册（'+mb+' MB）。';
+  }catch(e){ if(typeof grain0!=='undefined') S.grain=grain0; st.textContent='导出失败：'+errText(e) }
+  exporting=false; $('mp4').disabled=false;
 }
 // 无 WebCodecs 时：实时录制画布（只接受 mp4，容器不收 webm）
 async function recordMP4(){
@@ -1240,6 +1310,7 @@ function errText(e){ return (e&&(e.errMsg||e.message||e.code))||String(e) }
     .observe(s,{childList:true,characterData:true,subtree:true});
 })();
 // 容器内只请求图片，系统选择器最稳
+if(IN_XHS){ var mb4=document.getElementById('mp4'); if(mb4) mb4.textContent='导出动图'; }
 if(IN_XHS){ ['fileall','popFileAll'].forEach(function(id){ var e=document.getElementById(id); if(!e) return; e.setAttribute('accept','image/*');
   var lb=e.parentNode; if(lb&&lb.firstChild&&lb.firstChild.nodeType===3) lb.firstChild.nodeValue=id==='fileall'?'上传图片':'上传图片';
   // 视频单独一个入口
@@ -1574,7 +1645,7 @@ function readImageFile(f, cb){
 }
 
 // 容器禁 blob:/data: 媒体，但文件系统写入的文件句柄可作为 video.src（客户端 9.49+）
-var FS_ROOT=null, FS_CHUNK=0;
+var FS_ROOT=null, FS_CHUNK=0, LIVE_MEDIA={};
 async function fsPrep(){
   if(FS_ROOT) return true;
   if(typeof MT.writeFile!=='function'||typeof MT.appendFile!=='function') return false;
@@ -1607,24 +1678,38 @@ async function readVideoViaTemp(f, cb){
   var why=[];
   try{
     if(await fsPrep()){
-      var ext=(/\.(mov|m4v|webm)$/i.exec(f.name)||['.mp4'])[0].toLowerCase();
-      var path=FS_ROOT+'/media/v'+Date.now()+ext;
-      var step=Math.max(3*1024,Math.floor(FS_CHUNK/4)*3);           // base64 膨胀 4/3，按 3 字节对齐
-      for(var pos=0;pos<f.size;pos+=step){
-        var b64=await sliceB64(f,pos,Math.min(f.size,pos+step));
-        if(pos===0) await MT.writeFile({filePath:path,data:b64,encoding:'base64'});
-        else await MT.appendFile({filePath:path,data:b64,encoding:'base64'});
-        if(typeof st!=='undefined') st.textContent='正在读取视频 '+Math.round(Math.min(1,(pos+step)/f.size)*100)+'%';
+      var info=null; try{ info=await MT.getFileStorageInfo() }catch(e){}
+      // 清掉以前上传的视频，腾空间
+      if(typeof MT.readDir==='function'&&typeof MT.unlink==='function'){
+        try{ var d=await MT.readDir({dirPath:FS_ROOT+'/media'}); var fl=(d&&d.files)||[];
+          for(var q=0;q<fl.length;q++){ var nm=typeof fl[q]==='string'?fl[q]:(fl[q].name||fl[q].path||'');
+            if(!nm) continue; if(nm.indexOf('/')<0) nm=FS_ROOT+'/media/'+nm;
+            if(!LIVE_MEDIA[nm]) try{ await MT.unlink({filePath:nm}) }catch(e){} } }catch(e){}
+        try{ info=await MT.getFileStorageInfo() }catch(e){}
       }
-      return playFromPath(path,function(e,it){ if(!e) return cb(null,it); why.push('文件句柄'+e.message); tempWay() });
-    }
-    why.push('文件系统不可用');
+      var free=info&&info.limitBytes?info.limitBytes-(info.usedBytes||0):Infinity;
+      if(f.size>free){ why.push('超过小工具存储空间（剩余约 '+Math.max(0,free/1048576).toFixed(0)+'MB）') }
+      else {
+        var path=FS_ROOT+'/media/v'+Date.now()+'.mp4';
+        var step=Math.max(3*1024,Math.floor(FS_CHUNK/4)*3);
+        try{
+          for(var pos=0;pos<f.size;pos+=step){
+            var b64=await sliceB64(f,pos,Math.min(f.size,pos+step));
+            if(pos===0) await MT.writeFile({filePath:path,data:b64,encoding:'base64'});
+            else await MT.appendFile({filePath:path,data:b64,encoding:'base64'});
+            if(typeof st!=='undefined') st.textContent='正在读取视频 '+Math.round(Math.min(1,(pos+step)/f.size)*100)+'%';
+          }
+          LIVE_MEDIA[path]=1;
+          return playFromPath(path,function(e,it){ if(!e) return cb(null,it); why.push('文件句柄'+e.message); tempWay() });
+        }catch(e){ why.push(errText(e)); try{ await MT.unlink({filePath:path}) }catch(e2){} }
+      }
+    } else     why.push('文件系统不可用');
   }catch(e){ why.push(errText(e)) }
   tempWay();
   function tempWay(){
     if(typeof MT.writeTempFile!=='function') return cb(new Error(why.join('；')));
     var r=new FileReader(); r.onerror=function(){ cb(new Error('读取失败')) };
-    r.onload=function(){ MT.writeTempFile({data:r.result}).then(function(t){
+    r.onload=function(){ var du=String(r.result).replace(/^data:[^;,]*/,'data:video/mp4'); MT.writeTempFile({data:du}).then(function(t){
       if(!t||!t.filePath) return cb(new Error(why.concat('临时文件写入失败').join('；')));
       playFromPath(t.filePath,function(e,it){ e?cb(new Error(why.concat('临时文件'+e.message).join('；'))):cb(null,it) });
     },function(e){ cb(new Error(why.concat(errText(e)).join('；'))) }) };
@@ -1744,7 +1829,7 @@ function onPick(ev){
       if(!err) return handle(null,item);
       if(mt()&&typeof MT.writeTempFile==='function') return readVideoViaTemp(f, function(e2,it2){
         if(!e2) return handle(null,it2);
-        handle(new Error('小红书内读取视频失败：'+e2.message));
+        handle(new Error('小红书内读取视频失败：'+e2.message+(f.size>30*1048576?'。建议先把视频压缩到 30MB 以内再上传':'')));
       });
       readVideoFile(f, handle);       // 原生不可用则抽帧
     });
