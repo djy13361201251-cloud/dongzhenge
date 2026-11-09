@@ -5,3 +5,5 @@ _work/**/*.zip
 *.mp4
 *.mov
 _skill_dl/extracted/
+film/out/
+film/web/vo
