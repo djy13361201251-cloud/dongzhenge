@@ -281,6 +281,13 @@ html,body{overflow-x:hidden}
 /* 小红书容器：顶部让出状态栏 + 导航胶囊（返回 / 分享 / 更多） */
 .in-xhs .app{padding-top:56px;padding-top:calc(48px + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)))!important}
 
+/* 浮动提示：手机上状态栏文字不可见，消息从底部浮出 */
+.toast{position:fixed;left:16px;right:16px;bottom:24px;bottom:calc(24px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
+  z-index:200;margin:0 auto;max-width:480px;padding:12px 16px;border-radius:16px;background:rgba(20,20,20,.92);color:#fff;
+  font-size:14px;line-height:1.5;text-align:center;opacity:0;transform:translateY(12px);pointer-events:none;
+  transition:opacity .2s,transform .25s var(--spring)}
+.toast.on{opacity:1;transform:translateY(0)}
+
 /* 手机：演示 / 导出 挪到「抽一张」卡片底部，三等分 */
 .acts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-gap:8px;margin-top:12px}
 .acts > *{margin:0!important}

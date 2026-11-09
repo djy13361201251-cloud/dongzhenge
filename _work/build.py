@@ -979,6 +979,10 @@ from cellfix import apply as cellfix_apply
 js = cellfix_apply(js, must, fail)
 from mobilefix import apply as mobile_apply, fix_markup
 js = mobile_apply(js, must, fail)
+from persist import apply as persist_apply
+js = persist_apply(js, must, fail)
+from xhsfix import apply as xhs_apply
+js = xhs_apply(js, must, fail)
 # 不再有主视觉：heroKind 恒定，标题格的行为对所有格子一致
 js = must("function heroKind(){if(S.hero==='bowls') S.hero='type'; if(S.hero==='image') return IMG?'image':'type'; if(S.hero!=='auto') return S.hero; return HEROES_AUTO[S.seed%HEROES_AUTO.length]}",
           "function heroKind(){return 'type'}   // 主视觉格已取消，所有格子平等",

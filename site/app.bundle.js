@@ -207,6 +207,40 @@ function onCol(fill){const p=S.pal; return contrast(fill,p.ink)>=contrast(fill,p
 let IMG=null; let CELLIMG={};
 // 素材按 id 登记：渲染层拿到的是可绘制的 img / video 元素 / 抽帧
 let ASSETS={};
+// 用户改过的文字，按板式记忆，跨版式存活
+let TXT_MEM={};
+function memHas(l){ const m=TXT_MEM[l]; return !!m && Object.keys(m).length>0 }
+function pinTexts(){
+  const ls=Object.keys(TXT_MEM).filter(memHas);
+  if(!ls.length) return;
+  const L=layouts(); const n=L.A.length; if(!n) return;
+  const cur=L.types.map(function(x,i){ const o=S.over[i]||{}; const v=o.type||x; return LEGACY[v]||v });
+  const need=ls.filter(function(l){ return cur.indexOf('tx:'+l)<0 });
+  if(!need.length) return;
+  const sz=size(), W=sz[0], H=sz[1];
+  const cand=[];
+  for(let i=0;i<n;i++){
+    const o=S.over[i]||{};
+    if(o.aid||o.lock) continue;                                   // 素材格、锁定格不动
+    const t=cur[i]||'';
+    if(t.indexOf('tx:')===0 && memHas(t.slice(3))) continue;      // 已经承载别的改动文字
+    cand.push({i:i, p:toPx(L.A[i],W,H), tx:t.indexOf('tx:')===0});
+  }
+  need.forEach(function(l){
+    if(!cand.length) return;
+    let bk=-1, bs=-1;
+    cand.forEach(function(c,k){
+      const a=c.p.w/c.p.h, mn=Math.min(c.p.w,c.p.h);
+      const s=(txEligible(l,a,mn)?2e9:0)+(c.tx?0:1e9)+c.p.w*c.p.h;  // 放得下优先，其次占装饰格，再按面积
+      if(s>bs){ bs=s; bk=k }
+    });
+    const c=cand.splice(bk,1)[0];
+    const o=S.over[c.i]||(S.over[c.i]={});
+    o.type='tx:'+l;
+  });
+  if(need.length>cand.length && S.count<S.cols*S.rows) S.count++;   // 格子不够就加一格
+  S.overKey=geoKey();
+}
 // 硬规则：用户亲手贴上去的素材，除非他删素材或复原画面，否则必须一直可见。
 // 这份清单和版式解耦，换排列 / 抽卡 / 改参数把 S.over 清空后，会据此把素材重新贴回来。
 let MUST_SHOW=[];
@@ -446,7 +480,7 @@ function txDefault(l,i){const L=lines(), T=S.text.title; const dig=L.find(x=>/\d
     case 'ticker': return {h:(L.length?L:titleWords()).join(' · ')};
   }
   return {}}
-function txContent(l,i){const d=txDefault(l,i); const o=(S.over[i]&&S.over[i].txt)||{}; const out={}; ['k','h','s','b'].forEach(k=>{out[k]=(o[k]!==undefined&&o[k]!==null)?o[k]:(d[k]||'')}); return out}
+function txContent(l,i){const d=txDefault(l,i); const o=Object.assign({},TXT_MEM[l]||{},(S.over[i]&&S.over[i].txt)||{}); const out={}; ['k','h','s','b'].forEach(k=>{out[k]=(o[k]!==undefined&&o[k]!==null)?o[k]:(d[k]||'')}); return out}
 function txAlign(i){const o=S.over[i]||{}; if(o.al) return o.al; return isCute()?'c':'l'}
 function txOff(i){const o=S.over[i]||{}; return o.sz||0}
 // wrap latin by words, CJK by characters
@@ -707,6 +741,7 @@ function layouts(){
     Object.keys(S.over).forEach(function(k){ const o=S.over[k]; if(o&&o.aid) keep[o.aid]=1 });
     S.over={}; S.overKey=gkey;
     if(MUST_SHOW.length||Object.keys(keep).length){ pinAssets() }
+    pinTexts();
   }
   const edited=S.cells&&S.cellsKey===gkey;
   const key=JSON.stringify([gkey,S.gutter,S.pad,heroKind(),S.blank,S.textMix,S.plainMix,S.cseed,edited?S.cells:0]);
@@ -746,7 +781,7 @@ function render(ctx,t,{now=null,live=false}={}){
   let rects=rectsAt(t,W,H);
   if(live&&MORPH&&now!==null){const k=E.expoInOut(clamp((now-MORPH.start)/650)); if(k>=1) MORPH=null; else rects=rects.map((r,i)=>{const f=MORPH.from[i]; if(!f) return r; return {x:lerp(f.x,r.x,k),y:lerp(f.y,r.y,k),w:lerp(f.w,r.w,k),h:lerp(f.h,r.h,k)}})}
   LAST=rects;
-  pinAssets();
+  pinAssets(); pinTexts();
   const TY=finalTypes(); const fills=finalFills(TY); LASTTY=TY; LASTFILL=fills;
   const prodI=-1; const pcx=W/2, pcy=H/2;
   const sp=S.shuffle?Math.sin(Math.PI*P(t,shuffleT(),0.95)):0;
@@ -947,7 +982,7 @@ function drawBest(seed,opts={}){
     if(locks){ // keep layout + locked cells; re-roll colours and the unlocked content
       Object.assign(S,geo); const r=rng(sd); if(!opts.keepPal) S.pal=(opts.tier==='N'?genPalette(r):hiddenPalette(r)); S.cseed=Math.floor(r()*1e6);
       const o={}; Object.entries(keepOver).forEach(([i,v])=>{if(v&&v.lock) o[i]=v}); S.over=o; S.overKey=geoKey(); S.cells=keepCells?JSON.parse(JSON.stringify(keepCells)):null; S.cellsKey=keepCK;
-    } else {randomize(sd,opts); S.cseed=Math.floor(rng(sd+3)()*1e6); S.over={}; S.overKey=geoKey(); S.cells=null; if(MUST_SHOW.length) pinAssets()}
+    } else {randomize(sd,opts); S.cseed=Math.floor(rng(sd+3)()*1e6); S.over={}; S.overKey=geoKey(); S.cells=null; if(MUST_SHOW.length) pinAssets(); pinTexts()}
     const pen=quality(); if(pen<bestPen){bestPen=pen; best=getStyle()} if(pen===0) break;
   }
   setStyle(best); return bestPen;
@@ -955,7 +990,7 @@ function drawBest(seed,opts={}){
 const FIELDS=['aspect','style','hero','blank','textMix','plainMix','pal','cols','rows','count','variance','bias','gutter','pad','radius','seed','cseed','over','overKey','cells','cellsKey'];
 function getStyle(){const o={}; FIELDS.forEach(k=>{o[k]=(k==='pal'||k==='over'||k==='cells')?JSON.parse(JSON.stringify(S[k])):S[k]}); return o}
 function setStyle(o){FIELDS.forEach(k=>{if(k in o) S[k]=(k==='pal'||k==='over'||k==='cells')?JSON.parse(JSON.stringify(o[k])):o[k]})}
-window.GRIDKIT={S,getCells:()=>layouts().A.map(c=>Object.assign({},c)),setCells:a=>{S.cells=a.map(c=>Object.assign({},c)); S.cellsKey=geoKey()},cellPx:c=>{const [W,H]=size(); return toPx(c,W,H)},unit:()=>{const [W,H]=size(); const g=S.gutter,p=S.pad; return {ux:(W-2*p-(S.cols-1)*g)/S.cols+g, uy:(H-2*p-(S.rows-1)*g)/S.rows+g}},shuffleT,PRESETS,SIZES,size,render,randomize,drawBest,quality,lockedCount,getTypes:()=>finalTypes(),getFills:()=>finalFills(finalTypes()),baseTypes:()=>layouts().types,TXL,txContent,txDefault,TYPES,getStyle,setStyle,startMorph,getRects:()=>LAST,heroKind,setCellImage:(i,im)=>{ if(im) CELLIMG[i]=im; else delete CELLIMG[i]; },setAsset:(id,o)=>{ if(o) ASSETS[id]=o; else delete ASSETS[id] },dropAsset:id=>{ delete ASSETS[id]; const k=MUST_SHOW.indexOf(id); if(k>=0) MUST_SHOW.splice(k,1) },clearAssets:()=>{ ASSETS={}; MUST_SHOW=[] },pinAsset:id=>{ if(id&&MUST_SHOW.indexOf(id)<0) MUST_SHOW.push(id) },unpinAsset:id=>{ const k=MUST_SHOW.indexOf(id); if(k>=0) MUST_SHOW.splice(k,1) },getCellImage:i=>CELLIMG[i]||null,setFont:f=>{CUSTOM_FONT=f||null},getFont:()=>CUSTOM_FONT,setImage:img=>{IMG=img; IMGALPHA=false; if(img){try{const c=document.createElement('canvas'); c.width=64; c.height=64; const g=c.getContext('2d'); g.drawImage(img,0,0,64,64); const d=g.getImageData(0,0,64,64).data; for(let k=3;k<d.length;k+=4){if(d[k]<240){IMGALPHA=true;break}}}catch(e){}}},rng};
+window.GRIDKIT={S,getCells:()=>layouts().A.map(c=>Object.assign({},c)),setCells:a=>{S.cells=a.map(c=>Object.assign({},c)); S.cellsKey=geoKey()},cellPx:c=>{const [W,H]=size(); return toPx(c,W,H)},unit:()=>{const [W,H]=size(); const g=S.gutter,p=S.pad; return {ux:(W-2*p-(S.cols-1)*g)/S.cols+g, uy:(H-2*p-(S.rows-1)*g)/S.rows+g}},shuffleT,PRESETS,SIZES,size,render,randomize,drawBest,quality,lockedCount,getTypes:()=>finalTypes(),getFills:()=>finalFills(finalTypes()),baseTypes:()=>layouts().types,TXL,txContent,txDefault,TYPES,getStyle,setStyle,startMorph,getRects:()=>LAST,heroKind,setCellImage:(i,im)=>{ if(im) CELLIMG[i]=im; else delete CELLIMG[i]; },setAsset:(id,o)=>{ if(o) ASSETS[id]=o; else delete ASSETS[id] },dropAsset:id=>{ delete ASSETS[id]; const k=MUST_SHOW.indexOf(id); if(k>=0) MUST_SHOW.splice(k,1) },clearAssets:()=>{ ASSETS={}; MUST_SHOW=[] },memTxt:(l,k,v)=>{ if(!l) return; (TXT_MEM[l]=TXT_MEM[l]||{})[k]=v },clearTxt:l=>{ delete TXT_MEM[l] },pinAsset:id=>{ if(id&&MUST_SHOW.indexOf(id)<0) MUST_SHOW.push(id) },unpinAsset:id=>{ const k=MUST_SHOW.indexOf(id); if(k>=0) MUST_SHOW.splice(k,1) },getCellImage:i=>CELLIMG[i]||null,setFont:f=>{CUSTOM_FONT=f||null},getFont:()=>CUSTOM_FONT,setImage:img=>{IMG=img; IMGALPHA=false; if(img){try{const c=document.createElement('canvas'); c.width=64; c.height=64; const g=c.getContext('2d'); g.drawImage(img,0,0,64,64); const d=g.getImageData(0,0,64,64).data; for(let k=3;k<d.length;k+=4){if(d[k]<240){IMGALPHA=true;break}}}catch(e){}}},rng};
 })();
 
 
@@ -1052,7 +1087,7 @@ $('play').textContent=playing?'❚❚':'▶';
 // saving: 容器不联网、禁用 a[download] 与 blob 下载，统一走端能力
 function blobToDataURL(blob){return new Promise(function(res,rej){var f=new FileReader(); f.onload=function(){res(f.result)}; f.onerror=function(){rej(f.error||new Error('读取生成结果失败'))}; f.readAsDataURL(blob)})}
 async function toLocalPath(blob){
-  const data=await blobToDataURL(blob);
+  mt(); const data=await blobToDataURL(blob);
   if(MT&&typeof MT.writeTempFile==='function'){const r=await MT.writeTempFile({data:data}); return r&&r.filePath?r.filePath:data}
   return data;
 }
@@ -1067,36 +1102,49 @@ function localDownload(name,blob){
   }catch(e){ return 'fail' }
 }
 async function saveFile(name,blob){
+  await waitMT(IN_XHS?2000:0);
   if(!MT || typeof MT.saveImageToPhotosAlbum!=='function'){
+    if(IN_XHS) throw new Error('小红书保存接口未就绪，请把小红书更新到最新版后重试');
     var r=localDownload(name,blob);
     if(r==='local') return 'local';
     var e=new Error('当前环境不支持保存'); e.code='unsupported'; throw e;
   }
-  var path=await toLocalPath(blob);
-  try{ await MT.saveImageToPhotosAlbum({filePath:path}) }
-  catch(err){ if(err && err.errMsg) throw new Error(err.errMsg); throw err }
-  return 'saved';
+  var tries=[];
+  var data=await blobToDataURL(blob);
+  async function attempt(d){
+    try{ await MT.saveImageToPhotosAlbum({filePath:d}); return true }catch(e){ tries.push(errText(e)) }
+    if(typeof MT.writeTempFile==='function'){
+      try{ var t=await MT.writeTempFile({data:d}); if(t&&t.filePath){ await MT.saveImageToPhotosAlbum({filePath:t.filePath}); return true } }
+      catch(e){ tries.push(errText(e)) }
+    }
+    return false;
+  }
+  if(await attempt(data)) return 'saved';
+  if(/cancel|取消|auth|权限|deny/i.test(tries.join(' '))) throw new Error('没有相册权限：请在系统设置里允许小红书访问相册（'+tries[0]+'）');
+  try{ if(await attempt(cv.toDataURL('image/jpeg',0.92))) return 'saved' }catch(e){}
+  throw new Error(tries.slice(-2).join(' / ')||'保存失败');
 }
 const st=$('status'), prog=$('prog');
 function stamp(){const d=new Date(); return `${d.getMonth()+1}${String(d.getDate()).padStart(2,'0')}_${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}`}
-$('png').onclick=async()=>{await loadFonts(); G.render(ctx,curT()); const blob=await new Promise(r=>cv.toBlob(r,'image/png')); try{const r=await saveFile(`动真格_${S.aspect.replace(':','x')}_${stamp()}.png`,blob); st.textContent=r==='saved'?'已导出当前帧。':(r==='local'?'已下载到本地（浏览器预览模式）。':'已取消保存。')}catch(e){st.textContent='导出失败：'+(e.message||e.code)}};
+$('png').onclick=async()=>{st.textContent='正在生成图片…'; await loadFonts(); G.render(ctx,curT()); const blob=await new Promise(r=>cv.toBlob(r,'image/png')); try{const r=await saveFile(`动真格_${S.aspect.replace(':','x')}_${stamp()}.png`,blob); st.textContent=r==='saved'?'已导出当前帧。':(r==='local'?'已下载到本地（浏览器预览模式）。':'已取消保存。')}catch(e){st.textContent='导出失败：'+(e.message||e.code)}};
 $('mp4').onclick=async()=>{
-  if(exporting) return; if(!window.VideoEncoder){st.textContent='这个浏览器不支持逐帧编码，请换用 Chrome 或 Edge。'; return}
+  if(exporting) return; await waitMT(IN_XHS?2000:0);
+  if(!window.VideoEncoder){ return recordMP4() }
   await loadFonts(); exporting=true; $('mp4').disabled=true; prog.style.width='0%';
   try{
-    const [W,H]=G.size(), fps=60, n=Math.round(S.dur*fps);
-    let cfg=null; for(const c of ['avc1.64002A','avc1.640028','avc1.4D402A','avc1.42E01F']){const k={codec:c,width:W,height:H,bitrate:18e6,framerate:fps,avc:{format:'avc'}}; try{if((await VideoEncoder.isConfigSupported(k)).supported){cfg=k;break}}catch(e){}}
+    const [W,H]=G.size(), fps=IN_XHS?30:60, n=Math.round(S.dur*fps);
+    let cfg=null; for(const c of ['avc1.64002A','avc1.640028','avc1.4D402A','avc1.42E01F']){const k={codec:c,width:W,height:H,bitrate:IN_XHS?8e6:18e6,framerate:fps,avc:{format:'avc'}}; try{if((await VideoEncoder.isConfigSupported(k)).supported){cfg=k;break}}catch(e){}}
     if(!cfg) throw new Error('这个浏览器不支持 H.264 编码。');
     const mux=new MiniMP4.Muxer(W,H,fps); let err=null; const enc=new VideoEncoder({output:(c,m)=>mux.add(c,m),error:e=>{err=e}}); enc.configure(cfg);
     for(let i=0;i<n;i++){if(err) throw err; G.render(ctx,i/fps); const fr=new VideoFrame(cv,{timestamp:Math.round(i*1e6/fps),duration:Math.round(1e6/fps)}); enc.encode(fr,{keyFrame:i%120===0}); fr.close();
       while(enc.encodeQueueSize>8) await new Promise(r=>setTimeout(r,4));
       if(i%6===0){prog.style.width=(i/n*100).toFixed(1)+'%'; st.textContent=`正在编码第 ${i} / ${n} 帧`; await new Promise(r=>setTimeout(r,0))}}
     await enc.flush(); enc.close(); const blob=mux.finish(); prog.style.width='100%';
-    if(!MT||typeof MT.postNote!=='function'){
+    await deliverMP4(blob); if(false){
       var rr=localDownload(`动真格_${S.aspect.replace(':','x')}_${stamp()}.mp4`,blob);
       if(rr!=='local') throw new Error('当前环境不支持保存视频');
       st.textContent=`已下载 MP4（${(blob.size/1048576).toFixed(1)} MB）。`;
-    } else {
+    } else if(false){
       const vp=await toLocalPath(blob);
       await MT.postNote({pageType:'video_publish',mediaInfo:{video_resources:{video_url:vp}}});
       st.textContent=`已生成 MP4（${(blob.size/1048576).toFixed(1)} MB），正在打开发布页。`;
@@ -1104,6 +1152,42 @@ $('mp4').onclick=async()=>{
   }catch(e){st.textContent='导出失败：'+(e.message||e.code||e)}
   exporting=false; $('mp4').disabled=false;
 };
+async function deliverMP4(blob){
+  var mb=(blob.size/1048576).toFixed(1);
+  if(!MT||typeof MT.postNote!=='function'){
+    if(IN_XHS) throw new Error('小红书发布接口未就绪，请更新小红书后重试');
+    if(localDownload(`动真格_${S.aspect.replace(':','x')}_${stamp()}.mp4`,blob)!=='local') throw new Error('当前环境不支持保存视频');
+    st.textContent=`已下载 MP4（${mb} MB）。`; return;
+  }
+  st.textContent=`视频已生成（${mb} MB），正在交给小红书…`;
+  var data=await blobToDataURL(blob), vp=data, errs=[];
+  if(typeof MT.writeTempFile==='function'){ try{ var t=await MT.writeTempFile({data:data}); if(t&&t.filePath) vp=t.filePath }catch(e){ errs.push(errText(e)) } }
+  try{ await MT.postNote({pageType:'video_publish',mediaInfo:{video_resources:{video_url:vp}}}) }
+  catch(e){ errs.push(errText(e)); throw new Error('打开发布页失败：'+errs.join(' / ')) }
+  st.textContent=`已生成 MP4（${mb} MB），已打开发布页。`;
+}
+// 无 WebCodecs 时：实时录制画布（只接受 mp4，容器不收 webm）
+async function recordMP4(){
+  var types=['video/mp4;codecs=avc1.42E01E','video/mp4;codecs=avc1','video/mp4'];
+  var mime=window.MediaRecorder&&cv.captureStream?types.filter(function(t){ try{return MediaRecorder.isTypeSupported(t)}catch(e){return false} })[0]:null;
+  if(!mime){ st.textContent='导出失败：当前系统版本不支持在页面内生成 MP4（需要 iOS 14.3+ 或较新的安卓系统）。可先导出 PNG。'; return }
+  await loadFonts(); exporting=true; $('mp4').disabled=true; prog.style.width='0%';
+  try{
+    var stream=cv.captureStream(30), chunks=[];
+    var rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:8e6});
+    rec.ondataavailable=function(e){ if(e.data&&e.data.size) chunks.push(e.data) };
+    var done=new Promise(function(r){ rec.onstop=r });
+    var t0=performance.now(), dur=S.dur*1000;
+    rec.start(250);
+    await new Promise(function(res){ (function fr(){ var el=performance.now()-t0; G.render(ctx,Math.min(el/1000,S.dur));
+      prog.style.width=Math.min(100,el/dur*100).toFixed(1)+'%'; st.textContent='正在录制 '+Math.min(S.dur,el/1000).toFixed(1)+' / '+S.dur+' 秒';
+      if(el<dur) requestAnimationFrame(fr); else res() })() });
+    rec.stop(); await done; stream.getTracks().forEach(function(t){t.stop()});
+    prog.style.width='100%';
+    await deliverMP4(new Blob(chunks,{type:'video/mp4'}));
+  }catch(e){ st.textContent='导出失败：'+errText(e) }
+  exporting=false; $('mp4').disabled=false;
+}
 // tabs
 $('tabs').querySelectorAll('button').forEach((b,bi)=>b.onclick=()=>{$('tabs').style.setProperty('--i',bi);$('tabs').querySelectorAll('button').forEach(x=>{x.setAttribute('aria-selected',x===b); $(x.dataset.p).hidden=x!==b})});
 // space = draw
@@ -1134,6 +1218,23 @@ $('fShuffle').onclick=()=>{pushUndo(); const cols=FK.map(q=>S.pal[q]); cols.push
 // my palettes (this browser only)
 // ---- 色卡存储：容器 Storage(9.46+) 优先，浏览器存储兜底
 var MT=window.xhs&&window.xhs.miniTool;
+var IN_XHS=!!MT||/xhs|xiaohongshu|discover\//i.test(navigator.userAgent);
+function mt(){ var m=window.xhs&&window.xhs.miniTool; if(m){ MT=m; IN_XHS=true } return MT }
+function waitMT(ms){ return new Promise(function(res){ var t0=Date.now();
+  (function tick(){ if(mt()||Date.now()-t0>ms) return res(MT); setTimeout(tick,100) })() }) }
+function errText(e){ return (e&&(e.errMsg||e.message||e.code))||String(e) }
+// 手机上 #status 不可见：任何状态文字同时浮出提示
+(function(){
+  var s=document.getElementById('status'); if(!s||!window.MutationObserver) return;
+  var box=document.createElement('div'); box.className='toast'; box.setAttribute('role','status'); document.body.appendChild(box);
+  var tm=0;
+  new MutationObserver(function(){ var t=s.textContent.trim(); if(!t||/^\d+p\s*·/.test(t)) return;
+    box.textContent=t; box.classList.add('on'); clearTimeout(tm);
+    tm=setTimeout(function(){ box.classList.remove('on') }, /失败|无法|不支持|读不了/.test(t)?6000:2600) })
+    .observe(s,{childList:true,characterData:true,subtree:true});
+})();
+// 容器内只请求图片，系统选择器最稳
+if(IN_XHS){ ['fileall','popFileAll'].forEach(function(id){ var e=document.getElementById(id); if(e) e.setAttribute('accept','image/*') }) }
 var MINEKEY='gedong-mine';
 function getClientVersion(bv){return Math.floor((Number(bv)||0)/1000)}
 function readBuildVersion(opt){var e=opt&&opt.miniToolEnv; return Number(e&&e.buildVersion)||0}
@@ -1246,7 +1347,7 @@ function syncPop(){if(SEL<0) return; const ty=G.getTypes()[SEL], fi=G.getFills()
     if(pf.dataset.for!==SEL+'|'+ty){pf.innerHTML=''; pf.dataset.for=SEL+'|'+ty;
       TXN[l].f.forEach(([k,lab,multi])=>{const lb=document.createElement('label'); lb.className='f'; lb.textContent=lab; const inp=document.createElement(multi?'textarea':'input'); if(!multi) inp.type='text'; inp.id='pf-'+k; inp.value=cur[k]||'';
         inp.addEventListener('focus',()=>{if(!inp.__u){pushUndo(); inp.__u=1}}); inp.addEventListener('blur',()=>{inp.__u=0});
-        inp.oninput=()=>{const o=over(SEL); o.txt=Object.assign({},o.txt||{},{[k]:inp.value}); loadFonts()}; lb.appendChild(inp); pf.appendChild(lb)})}
+        inp.oninput=()=>{const o=over(SEL); o.txt=Object.assign({},o.txt||{},{[k]:inp.value}); G.memTxt(l,k,inp.value); loadFonts()}; lb.appendChild(inp); pf.appendChild(lb)})}
     $('popAlign').querySelectorAll('button').forEach(bt=>bt.setAttribute('aria-pressed',String((o.al||'')===bt.dataset.v)));
     $('popSize').querySelectorAll('button').forEach(bt=>bt.setAttribute('aria-pressed',String(String(o.sz||0)===bt.dataset.v)))}
   const pc=$('popCols'); pc.innerHTML=''; ['ground','paper','ink','c1','c2','c3','c4'].forEach(k=>{const c=S.pal[k]; const bt=document.createElement('button'); bt.type='button'; bt.style.background=c; bt.setAttribute('aria-label','颜色 '+k); bt.setAttribute('aria-pressed',String(c.toLowerCase()===String(fi).toLowerCase())); bt.onclick=()=>setOver(SEL,{fill:c}); pc.appendChild(bt)});
@@ -1290,7 +1391,7 @@ if($('lockAll')) $('lockAll').onclick=function(){
 };
 function showMeta(){ if($('assetMsg')) $('assetMsg').textContent='这一格已锁定：内容和颜色不再随抽卡改变。'; }
 $('popSwap').onclick=()=>{SWAP=SEL; stage.classList.add('swapping'); syncPop()};
-$('popReset').onclick=()=>{pushUndo(); delete S.over[SEL]; $('popFields').dataset.for=''; syncPop()};
+$('popReset').onclick=()=>{pushUndo(); const ty=G.getTypes()[SEL]||''; const o=S.over[SEL]||{}; if(ty.indexOf('tx:')===0) G.clearTxt(ty.slice(3)); if(o.aid) G.unpinAsset(o.aid); delete S.over[SEL]; $('popFields').dataset.for=''; syncPop()};
 
 // ---- text pane: one card per text cell, matching the poster's own hierarchy
 const LV={k:['lv-k','眉题'],h:['lv-h','主标题'],s:['lv-s','副标题'],b:['lv-b','正文']};
@@ -1316,7 +1417,7 @@ function buildTx(){if($('p-text').hidden) return; if(txl.contains(document.activ
     fields.forEach(([k,lab,multi])=>{const [cls,tag]=(LVSPEC[l]&&LVSPEC[l][k])||LV[k]; const row=document.createElement('label'); row.className='lvf '+cls; row.innerHTML=`<em>${tag}</em>`; row.title=lab;
       const inp=document.createElement(multi?'textarea':'input'); if(!multi) inp.type='text'; else inp.rows=1; inp.value=cur[k]||''; inp.setAttribute('aria-label',name+' · '+lab);
       inp.addEventListener('focus',()=>{if(!inp.__u){pushUndo(); inp.__u=1}}); inp.addEventListener('blur',()=>{inp.__u=0; txKey=''});
-      inp.oninput=()=>{autoH(inp); const o=over(i); o.txt=Object.assign({},o.txt||{},{[k]:inp.value}); if(SEL===i){$('popFields').dataset.for=''; syncPop()} loadFonts()};
+      inp.oninput=()=>{autoH(inp); const o=over(i); o.txt=Object.assign({},o.txt||{},{[k]:inp.value}); G.memTxt(l,k,inp.value); if(SEL===i){$('popFields').dataset.for=''; syncPop()} loadFonts()};
       row.appendChild(inp); c.appendChild(row)});
     c.onmouseenter=()=>{HOV=i; c.classList.add('on')}; c.onmouseleave=()=>{HOV=-1; c.classList.remove('on')};
     c.addEventListener('focusin',()=>{HOV=i; c.classList.add('on')}); c.addEventListener('focusout',()=>{HOV=-1; c.classList.remove('on')});
@@ -1460,6 +1561,29 @@ function readImageFile(f, cb){
   r.readAsDataURL(f);
 }
 
+function readVideoViaTemp(f, cb){
+  var r=new FileReader();
+  r.onerror=function(){ cb(new Error('读取失败')) };
+  r.onload=function(){
+    MT.writeTempFile({data:r.result}).then(function(t){
+      if(!t||!t.filePath) return cb(new Error('写入失败'));
+      var v=document.createElement('video'); v.muted=true; v.loop=true; v.autoplay=true;
+      v.setAttribute('playsinline',''); v.setAttribute('webkit-playsinline',''); v.preload='auto';
+      v.style.cssText='position:fixed;left:-9999px;top:0;width:2px;height:2px;opacity:0;pointer-events:none';
+      document.body.appendChild(v);
+      var ok=false;
+      function good(){ if(ok) return; ok=true;
+        var c=document.createElement('canvas'); c.width=200; c.height=200; var thumb='';
+        try{ var vw=v.videoWidth||200, vh=v.videoHeight||200, k=Math.max(200/vw,200/vh); c.getContext('2d').drawImage(v,(200-vw*k)/2,(200-vh*k)/2,vw*k,vh*k); thumb=c.toDataURL('image/jpeg',0.8) }catch(e){}
+        cb(null,{src:thumb,img:v,el:v,isVideo:true}) }
+      v.addEventListener('loadeddata',good); v.addEventListener('canplay',good);
+      v.addEventListener('error',function(){ if(!ok){ ok=true; try{v.remove()}catch(e){} cb(new Error('播放失败')) } });
+      setTimeout(function(){ if(!ok){ if(v.readyState>=2) good(); else { ok=true; try{v.remove()}catch(e){} cb(new Error('超时')) } } },5000);
+      v.src=t.filePath; try{ var p=v.play(); if(p&&p.catch) p.catch(function(){}) }catch(e){}
+    },function(e){ cb(new Error(errText(e))) });
+  };
+  r.readAsDataURL(f);
+}
 // 主路径：视频元素直连。成功即可原帧率完整播放。
 function readVideoNative(f, cb){
   var url;
@@ -1564,13 +1688,17 @@ function onPick(ev){
   fs.forEach(function(f,i){
     var isVideo=(f.type&&/^video\//.test(f.type))||/\.(mp4|mov|webm|m4v)$/i.test(f.name);
     function handle(err,item){
-      if(err) failed.push(f.name);
+      if(err) failed.push(f.name+'（'+(f.type||'未知类型')+'，'+(f.size/1048576).toFixed(1)+'MB，'+(err.message||'读取失败')+'）');
       else { item.order=i; results.push(item); }
       if(--pending===0) finish();
     }
     if(!isVideo) return readImageFile(f, handle);
     readVideoNative(f, function(err,item){
       if(!err) return handle(null,item);
+      if(mt()&&typeof MT.writeTempFile==='function') return readVideoViaTemp(f, function(e2,it2){
+        if(!e2) return handle(null,it2);
+        handle(new Error('小红书内暂不支持读取视频素材，请改用图片，或在网页版使用视频'));
+      });
       readVideoFile(f, handle);       // 原生不可用则抽帧
     });
   });

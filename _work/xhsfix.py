@@ -1,0 +1,190 @@
+# -*- coding: utf-8 -*-
+"""小红书容器适配
+
+1. 端能力延迟获取：window.xhs 可能晚于脚本注入，导出时再取，并最多等 2 秒；
+   在小红书里拿不到端能力时明确报错，不再误走「浏览器下载」（容器禁用，表现为没反应）。
+2. 存相册：先按文档直接传 data URI，失败再走 writeTempFile 路径，再失败降为 JPEG 重试，并显示端上 errMsg。
+3. 导出 MP4：没有 VideoEncoder 时退到 MediaRecorder（仅接受 mp4）；容器内用 30 帧 / 8Mbps 控制体积。
+4. 视频素材：容器禁止 blob:/data: 媒体，改为 writeTempFile 落成本地文件再播放；仍失败给出明确说明。
+5. 容器内选择器只请求图片（accept="image/*"），避免系统选择器把混合类型判为无法识别。
+6. 手机上状态栏文字是隐藏的：所有状态消息同时以浮动提示显示。
+7. 上传失败写清楚：文件名、类型、大小、失败环节。
+"""
+
+
+def apply(js, must, fail):
+    js = must(
+        "var MT=window.xhs&&window.xhs.miniTool;",
+        r"""var MT=window.xhs&&window.xhs.miniTool;
+var IN_XHS=!!MT||/xhs|xiaohongshu|discover\//i.test(navigator.userAgent);
+function mt(){ var m=window.xhs&&window.xhs.miniTool; if(m){ MT=m; IN_XHS=true } return MT }
+function waitMT(ms){ return new Promise(function(res){ var t0=Date.now();
+  (function tick(){ if(mt()||Date.now()-t0>ms) return res(MT); setTimeout(tick,100) })() }) }
+function errText(e){ return (e&&(e.errMsg||e.message||e.code))||String(e) }
+// 手机上 #status 不可见：任何状态文字同时浮出提示
+(function(){
+  var s=document.getElementById('status'); if(!s||!window.MutationObserver) return;
+  var box=document.createElement('div'); box.className='toast'; box.setAttribute('role','status'); document.body.appendChild(box);
+  var tm=0;
+  new MutationObserver(function(){ var t=s.textContent.trim(); if(!t||/^\d+p\s*·/.test(t)) return;
+    box.textContent=t; box.classList.add('on'); clearTimeout(tm);
+    tm=setTimeout(function(){ box.classList.remove('on') }, /失败|无法|不支持|读不了/.test(t)?6000:2600) })
+    .observe(s,{childList:true,characterData:true,subtree:true});
+})();
+// 容器内只请求图片，系统选择器最稳
+if(IN_XHS){ ['fileall','popFileAll'].forEach(function(id){ var e=document.getElementById(id); if(e) e.setAttribute('accept','image/*') }) }""",
+        js, 'lazy MT + toast')
+
+    js = must(
+        "async function saveFile(name,blob){\n"
+        "  if(!MT || typeof MT.saveImageToPhotosAlbum!=='function'){\n"
+        "    var r=localDownload(name,blob);\n"
+        "    if(r==='local') return 'local';\n"
+        "    var e=new Error('当前环境不支持保存'); e.code='unsupported'; throw e;\n"
+        "  }\n"
+        "  var path=await toLocalPath(blob);\n"
+        "  try{ await MT.saveImageToPhotosAlbum({filePath:path}) }\n"
+        "  catch(err){ if(err && err.errMsg) throw new Error(err.errMsg); throw err }\n"
+        "  return 'saved';\n"
+        "}",
+        r"""async function saveFile(name,blob){
+  await waitMT(IN_XHS?2000:0);
+  if(!MT || typeof MT.saveImageToPhotosAlbum!=='function'){
+    if(IN_XHS) throw new Error('小红书保存接口未就绪，请把小红书更新到最新版后重试');
+    var r=localDownload(name,blob);
+    if(r==='local') return 'local';
+    var e=new Error('当前环境不支持保存'); e.code='unsupported'; throw e;
+  }
+  var tries=[];
+  var data=await blobToDataURL(blob);
+  async function attempt(d){
+    try{ await MT.saveImageToPhotosAlbum({filePath:d}); return true }catch(e){ tries.push(errText(e)) }
+    if(typeof MT.writeTempFile==='function'){
+      try{ var t=await MT.writeTempFile({data:d}); if(t&&t.filePath){ await MT.saveImageToPhotosAlbum({filePath:t.filePath}); return true } }
+      catch(e){ tries.push(errText(e)) }
+    }
+    return false;
+  }
+  if(await attempt(data)) return 'saved';
+  if(/cancel|取消|auth|权限|deny/i.test(tries.join(' '))) throw new Error('没有相册权限：请在系统设置里允许小红书访问相册（'+tries[0]+'）');
+  try{ if(await attempt(cv.toDataURL('image/jpeg',0.92))) return 'saved' }catch(e){}
+  throw new Error(tries.slice(-2).join(' / ')||'保存失败');
+}""",
+        js, 'saveFile robust')
+
+    # toLocalPath 也要延迟拿端能力
+    js = must("async function toLocalPath(blob){\n  const data=await blobToDataURL(blob);",
+              "async function toLocalPath(blob){\n  mt(); const data=await blobToDataURL(blob);",
+              js, 'toLocalPath lazy')
+
+    # ---- MP4：VideoEncoder 不可用时退到 MediaRecorder
+    js = must(
+        "  if(exporting) return; if(!window.VideoEncoder){st.textContent='这个浏览器不支持逐帧编码，请换用 Chrome 或 Edge。'; return}",
+        "  if(exporting) return; await waitMT(IN_XHS?2000:0);\n"
+        "  if(!window.VideoEncoder){ return recordMP4() }",
+        js, 'mp4 fallback entry')
+    js = must("    const [W,H]=G.size(), fps=60, n=Math.round(S.dur*fps);",
+              "    const [W,H]=G.size(), fps=IN_XHS?30:60, n=Math.round(S.dur*fps);", js, 'mp4 fps')
+    js = must("const k={codec:c,width:W,height:H,bitrate:18e6,",
+              "const k={codec:c,width:W,height:H,bitrate:IN_XHS?8e6:18e6,", js, 'mp4 bitrate')
+    js = must(
+        "    if(!MT||typeof MT.postNote!=='function'){\n"
+        "      var rr=localDownload(`动真格_${S.aspect.replace(':','x')}_${stamp()}.mp4`,blob);",
+        "    await deliverMP4(blob); if(false){\n"
+        "      var rr=localDownload(`动真格_${S.aspect.replace(':','x')}_${stamp()}.mp4`,blob);",
+        js, 'mp4 deliver')
+    js = must("    } else {\n      const vp=await toLocalPath(blob);",
+              "    } else if(false){\n      const vp=await toLocalPath(blob);", js, 'mp4 old branch off')
+    js = must(
+        "// tabs\n$('tabs')",
+        r"""async function deliverMP4(blob){
+  var mb=(blob.size/1048576).toFixed(1);
+  if(!MT||typeof MT.postNote!=='function'){
+    if(IN_XHS) throw new Error('小红书发布接口未就绪，请更新小红书后重试');
+    if(localDownload(`动真格_${S.aspect.replace(':','x')}_${stamp()}.mp4`,blob)!=='local') throw new Error('当前环境不支持保存视频');
+    st.textContent=`已下载 MP4（${mb} MB）。`; return;
+  }
+  st.textContent=`视频已生成（${mb} MB），正在交给小红书…`;
+  var data=await blobToDataURL(blob), vp=data, errs=[];
+  if(typeof MT.writeTempFile==='function'){ try{ var t=await MT.writeTempFile({data:data}); if(t&&t.filePath) vp=t.filePath }catch(e){ errs.push(errText(e)) } }
+  try{ await MT.postNote({pageType:'video_publish',mediaInfo:{video_resources:{video_url:vp}}}) }
+  catch(e){ errs.push(errText(e)); throw new Error('打开发布页失败：'+errs.join(' / ')) }
+  st.textContent=`已生成 MP4（${mb} MB），已打开发布页。`;
+}
+// 无 WebCodecs 时：实时录制画布（只接受 mp4，容器不收 webm）
+async function recordMP4(){
+  var types=['video/mp4;codecs=avc1.42E01E','video/mp4;codecs=avc1','video/mp4'];
+  var mime=window.MediaRecorder&&cv.captureStream?types.filter(function(t){ try{return MediaRecorder.isTypeSupported(t)}catch(e){return false} })[0]:null;
+  if(!mime){ st.textContent='导出失败：当前系统版本不支持在页面内生成 MP4（需要 iOS 14.3+ 或较新的安卓系统）。可先导出 PNG。'; return }
+  await loadFonts(); exporting=true; $('mp4').disabled=true; prog.style.width='0%';
+  try{
+    var stream=cv.captureStream(30), chunks=[];
+    var rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:8e6});
+    rec.ondataavailable=function(e){ if(e.data&&e.data.size) chunks.push(e.data) };
+    var done=new Promise(function(r){ rec.onstop=r });
+    var t0=performance.now(), dur=S.dur*1000;
+    rec.start(250);
+    await new Promise(function(res){ (function fr(){ var el=performance.now()-t0; G.render(ctx,Math.min(el/1000,S.dur));
+      prog.style.width=Math.min(100,el/dur*100).toFixed(1)+'%'; st.textContent='正在录制 '+Math.min(S.dur,el/1000).toFixed(1)+' / '+S.dur+' 秒';
+      if(el<dur) requestAnimationFrame(fr); else res() })() });
+    rec.stop(); await done; stream.getTracks().forEach(function(t){t.stop()});
+    prog.style.width='100%';
+    await deliverMP4(new Blob(chunks,{type:'video/mp4'}));
+  }catch(e){ st.textContent='导出失败：'+errText(e) }
+  exporting=false; $('mp4').disabled=false;
+}
+// tabs
+$('tabs')""",
+        js, 'mp4 helpers')
+
+    # ---- 上传失败写清原因
+    js = must(
+        "      if(err) failed.push(f.name);",
+        "      if(err) failed.push(f.name+'（'+(f.type||'未知类型')+'，'+(f.size/1048576).toFixed(1)+'MB，'+(err.message||'读取失败')+'）');",
+        js, 'upload diagnostics')
+
+    # ---- 视频素材：容器禁 blob 媒体，失败后落成临时文件再播放
+    js = must(
+        "    readVideoNative(f, function(err,item){\n"
+        "      if(!err) return handle(null,item);\n"
+        "      readVideoFile(f, handle);       // 原生不可用则抽帧\n"
+        "    });",
+        "    readVideoNative(f, function(err,item){\n"
+        "      if(!err) return handle(null,item);\n"
+        "      if(mt()&&typeof MT.writeTempFile==='function') return readVideoViaTemp(f, function(e2,it2){\n"
+        "        if(!e2) return handle(null,it2);\n"
+        "        handle(new Error('小红书内暂不支持读取视频素材，请改用图片，或在网页版使用视频'));\n"
+        "      });\n"
+        "      readVideoFile(f, handle);       // 原生不可用则抽帧\n"
+        "    });",
+        js, 'video via temp')
+    js = must(
+        "// 主路径：视频元素直连。成功即可原帧率完整播放。",
+        r"""function readVideoViaTemp(f, cb){
+  var r=new FileReader();
+  r.onerror=function(){ cb(new Error('读取失败')) };
+  r.onload=function(){
+    MT.writeTempFile({data:r.result}).then(function(t){
+      if(!t||!t.filePath) return cb(new Error('写入失败'));
+      var v=document.createElement('video'); v.muted=true; v.loop=true; v.autoplay=true;
+      v.setAttribute('playsinline',''); v.setAttribute('webkit-playsinline',''); v.preload='auto';
+      v.style.cssText='position:fixed;left:-9999px;top:0;width:2px;height:2px;opacity:0;pointer-events:none';
+      document.body.appendChild(v);
+      var ok=false;
+      function good(){ if(ok) return; ok=true;
+        var c=document.createElement('canvas'); c.width=200; c.height=200; var thumb='';
+        try{ var vw=v.videoWidth||200, vh=v.videoHeight||200, k=Math.max(200/vw,200/vh); c.getContext('2d').drawImage(v,(200-vw*k)/2,(200-vh*k)/2,vw*k,vh*k); thumb=c.toDataURL('image/jpeg',0.8) }catch(e){}
+        cb(null,{src:thumb,img:v,el:v,isVideo:true}) }
+      v.addEventListener('loadeddata',good); v.addEventListener('canplay',good);
+      v.addEventListener('error',function(){ if(!ok){ ok=true; try{v.remove()}catch(e){} cb(new Error('播放失败')) } });
+      setTimeout(function(){ if(!ok){ if(v.readyState>=2) good(); else { ok=true; try{v.remove()}catch(e){} cb(new Error('超时')) } } },5000);
+      v.src=t.filePath; try{ var p=v.play(); if(p&&p.catch) p.catch(function(){}) }catch(e){}
+    },function(e){ cb(new Error(errText(e))) });
+  };
+  r.readAsDataURL(f);
+}
+// 主路径：视频元素直连。成功即可原帧率完整播放。""",
+        js, 'readVideoViaTemp')
+    js = must("$('png').onclick=async()=>{await loadFonts();",
+              "$('png').onclick=async()=>{st.textContent='正在生成图片…'; await loadFonts();", js, 'png progress')
+    return js
