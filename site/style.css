@@ -453,4 +453,21 @@ body.stageonly .toast{bottom:96px;bottom:calc(96px + var(--safe-area-inset-botto
 @media (max-width:640px){
   .top{display:flex;min-height:40px}
   .stage{padding:12px}
+}/* 手机：上半部分（顶栏 + 画布 + 时间轴）固定不动，只有下面的操作区自己滚动，方便录屏。
+   --appH 由脚本写入 window.innerHeight（iOS 的 100vh 会把浏览器工具栏算进去）。 */
+@media (max-width:640px){
+  html,body{height:100%;overflow:hidden!important;overscroll-behavior:none}
+  .app{height:100vh;height:var(--appH,100vh);box-sizing:border-box;display:flex!important;flex-direction:column;
+    overflow:hidden;padding-bottom:0!important}
+  .app > .top{flex:none}
+  .main{display:flex!important;flex-direction:column;align-items:stretch!important;flex:1;min-height:0;width:100%}
+  .main > .desk,.main > .side{width:100%;box-sizing:border-box;align-self:stretch}
+  .main > .desk{flex:none}
+  .main > .side{flex:1;min-height:0;height:auto!important;margin-top:12px;overflow-x:hidden;overflow-y:auto!important;
+    -webkit-overflow-scrolling:touch;overscroll-behavior:contain;border-radius:var(--R) var(--R) 0 0;
+    padding-bottom:24px;padding-bottom:calc(24px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)))}
+  .side .insp,.side #paneWrap{display:block;height:auto;overflow:visible}
+  .side #paneWrap > .pane{overflow:visible;height:auto}
+  .dock{padding-top:8px;padding-bottom:8px}
+  .dock .editHint{display:none}
 }

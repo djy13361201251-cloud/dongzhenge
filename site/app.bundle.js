@@ -1044,16 +1044,22 @@ function sync(){setTimeout(paintRanges,0);
   ['title','lines'].forEach(k=>{if(document.activeElement!==$('t-'+k)) $('t-'+k).value=S.text[k]});
 }
 function loadFonts(){if(!document.fonts||typeof document.fonts.load!=='function') return Promise.resolve();return Promise.all([document.fonts.load('900 100px InterD'),document.fonts.load('900 100px PoppinsT')]).catch(function(){})}
+function setAppH(){ document.documentElement.style.setProperty('--appH', window.innerHeight+'px') }
+setAppH(); window.addEventListener('resize', setAppH);
+window.addEventListener('orientationchange', function(){ setTimeout(function(){ setAppH(); if(typeof fit==='function') fit() }, 300) });
 function mobileBH(){
-  var db=document.getElementById('rand');
-  if(!db||!cv.offsetHeight||window.innerWidth>640) return window.innerHeight*0.7;
-  var cr=cv.getBoundingClientRect(), dr=db.getBoundingClientRect();
-  var top=cr.top+(window.pageYOffset||0);          // 画布上方占用（与画布高度无关）
-  var below=dr.bottom-cr.bottom;                   // 画布底到「抽一张」底（与画布高度无关）
-  var safeB=40;                                    // Home 指示条 + 留白
-  var avail=window.innerHeight-top-below-safeB;
-  return Math.max(280, Math.min(window.innerHeight*0.7, avail));
+  if(!cv.offsetHeight||window.innerWidth>640) return window.innerHeight*0.7;
+  // 画布固定在上半屏：给下面的操作区至少留 32% 屏高（≥220px），其余都给画布
+  var desk=document.querySelector('.desk');
+  var cr=cv.getBoundingClientRect(), dk=desk?desk.getBoundingClientRect():cr;
+  var above=cr.top, below=dk.bottom-cr.bottom;     // 都与画布高度无关
+  var sideMin=Math.max(220, Math.round(window.innerHeight*0.32))+12;
+  var avail=window.innerHeight-above-below-sideMin;
+  return Math.max(220, Math.min(window.innerHeight*0.62, avail));
 }
+// 点画面里的格子 → 操作区滚到格子面板，面板马上可见
+cv.addEventListener('click', function(){ if(window.innerWidth>640) return;
+  setTimeout(function(){ var sd=document.querySelector('.side'), pp=$('inspPop'); if(sd&&pp&&!pp.hidden) sd.scrollTop+=pp.getBoundingClientRect().top-sd.getBoundingClientRect().top-12 }, 0) });
 var ACT_IDS=['fs','png','mp4'];
 function placeActions(){
   var mobile=window.innerWidth<=640;
@@ -1072,9 +1078,9 @@ function placeActions(){
 placeActions();
 window.addEventListener('resize',function(){ placeActions() });
 function fit(){if(document.body.classList.contains('stageonly')) return; const st=cv.parentElement; const cs=getComputedStyle(st); const bw=st.clientWidth-(window.innerWidth<=1000?28:44), bh=window.innerWidth<=1000?mobileBH():st.clientHeight-44; const [w,h]=G.size(); const k=Math.min(bw/w,bh/h); cv.style.width=Math.floor(w*k)+'px'; cv.style.height=Math.floor(h*k)+'px';
-  if(window.innerWidth<=640){ var rb=$('rand'); var ch=Math.floor(h*k);
+  if(window.innerWidth<=640){ var rb=document.querySelector('.desk'); var ch=Math.floor(h*k);
     for(var it=0; it<3 && rb; it++){
-      var over=rb.getBoundingClientRect().bottom+(window.pageYOffset||0)-(window.innerHeight-40);
+      var over=rb.getBoundingClientRect().bottom-(window.innerHeight-Math.max(220,Math.round(window.innerHeight*0.32))-12);
       if(over<=1) break;
       ch=Math.max(220, ch-Math.ceil(over)); if(ch===220&&it>0) break;
       cv.style.height=ch+'px'; cv.style.width=Math.floor(ch*w/h)+'px';
