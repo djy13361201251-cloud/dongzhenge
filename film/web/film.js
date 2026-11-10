@@ -144,19 +144,15 @@ function build(){
   const press=(t,i)=>ev(t,d=>{ d.press={i,t0:t-LEAD} });
   const idx=(lay,role)=>L[lay].findIndex(c=>c.role===role);
 
-  // ① 开场钩子
+  // ① 开场钩子：每张停 3 秒以上，只在句首切
   scene(0,{layout:'A',style:'spec',pal:'teal',head:HEAD[0],seed:3});
-  scene(at('丝滑'),{layout:'B',style:'spec',pal:'night',head:HEAD[1],seed:5});
-  scene(at('海报'),{layout:'C',style:'spec',pal:'cream',head:HEAD[2],seed:9});
-  scene(at('粘览'),{layout:'A',style:'cute',pal:'peach',head:HEAD[1],seed:11});
-  scene(at('Cloud'),{layout:'B',style:'spec',pal:'blues',head:'Claude 出品',seed:13});
-  scene(at('打开网页'),{layout:'C',style:'spec',pal:'teal',head:HEAD[2],seed:15});
+  scene(at('或者'),{layout:'B',style:'spec',pal:'night',head:HEAD[1],seed:5});
+  scene(at('那你'),{layout:'C',style:'spec',pal:'cream',head:HEAD[2],seed:9});
 
-  // ② 抽一张
+  // ② 抽一张：约 2 秒一张
   scene(at('抽一张'),{layout:'A',style:'spec',pal:'olive',head:'抽一张',seed:21}); press(at('抽一张'),idx('A','cta'));
-  scene(at('抽卡'),{layout:'B',style:'cute',pal:'berry',head:'风格抽卡',seed:23}); press(at('抽卡'),idx('B','cta'));
-  scene(at('每抽一次'),{layout:'C',style:'spec',pal:'mango',head:HEAD[2],seed:25}); press(at('每抽一次'),idx('C','cta'));
-  scene(at('配色',14),{layout:'A',style:'spec',pal:'film',head:'换排版 换配色',seed:27});
+  scene(at('每抽一次'),{layout:'B',style:'cute',pal:'berry',head:'风格抽卡',seed:23}); press(at('每抽一次'),idx('B','cta'));
+  scene(at('配色',14),{layout:'C',style:'spec',pal:'film',head:'换排版 换配色',seed:27}); press(at('配色',14),idx('C','cta'));
 
   // ③ 三种风格
   scene(at('三种风格'),{layout:'A',style:'spec',pal:'beach',head:'三种风格',seed:31});
