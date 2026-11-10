@@ -187,7 +187,6 @@ function build(){
   // ⑦ 配色（不露脸）
   scene(at('另外'),{layout:'P',style:'spec',pal:'caramel',head:'配色',seed:71});
   set(at('配色库'),sc=>{ sc.pal='dusk'; sc.head='配色库' });
-  set(at('选择',53),sc=>{ sc.pal='blueberry' });
   set(at('自己选择'),sc=>{ sc.pal=Object.assign({},PALS.dusk,{c1:'#7B4DFF',c4:'#14C3A0',name:'自选'}); sc.head='自选颜色' });
   sel(at('拖入图片'),idx('P','photo')); set(at('拖入图片'),sc=>{ sc.head='拖图吸色' });
   scene(at('吸色'),{layout:'P',style:'spec',pal:PHOTO_PAL,head:'一键吸色',seed:73});
@@ -213,7 +212,7 @@ function applyUpTo(t){
 // ---------------------------------------------------------------- 绘制辅助
 function loadImg(src){ return new Promise((res,rej)=>{ const im=new Image(); im.onload=()=>res(im); im.onerror=()=>rej(new Error('load '+src)); im.src=src }) }
 const pad5=n=>String(n).padStart(5,'0');
-let PHOTO=null;
+let PHOTO=null, LASTFACE=null;
 const easeIO=p=>{ p=Math.min(1,Math.max(0,p)); return p<.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2 };
 function rr(c,x,y,w,h,r){ c.beginPath(); c.moveTo(x+r,y); c.arcTo(x+w,y,x+w,y+h,r); c.arcTo(x+w,y+h,x,y+h,r); c.arcTo(x,y+h,x,y,r); c.arcTo(x,y,x+w,y,r); c.closePath() }
 function drawSel(r){
@@ -227,7 +226,7 @@ function cover(c,im){ const k=Math.max(W/im.width,H/im.height); c.drawImage(im,(
 // ---------------------------------------------------------------- 逐帧
 async function frame(n){
   const t=n/FPS;
-  const face=await loadImg('vo/'+pad5(n+1)+'.jpg');
+  let face; try{ face=await loadImg('vo/'+pad5(n+1)+'.jpg'); LASTFACE=face }catch(e){ face=LASTFACE }
   G.setAsset('vo',{img:face,fx:0.5,fy:0.32,z:1.25});
   G.setAsset('photo',{img:PHOTO});
   G.setVoAid('vo');
