@@ -983,6 +983,8 @@ from persist import apply as persist_apply
 js = persist_apply(js, must, fail)
 from xhsfix import apply as xhs_apply
 js = xhs_apply(js, must, fail)
+# from voice import apply as voice_apply   # 口播模式：暂停开发，未测试，不进发布包
+# js = voice_apply(js, must, fail)
 # 不再有主视觉：heroKind 恒定，标题格的行为对所有格子一致
 js = must("function heroKind(){if(S.hero==='bowls') S.hero='type'; if(S.hero==='image') return IMG?'image':'type'; if(S.hero!=='auto') return S.hero; return HEROES_AUTO[S.seed%HEROES_AUTO.length]}",
           "function heroKind(){return 'type'}   // 主视觉格已取消，所有格子平等",
@@ -1233,6 +1235,7 @@ if 'id="fs"' not in body_html:
     fail('fullscreen button not injected')
 
 body_html = fix_markup(body_html, fail)
+body_html = body_html.replace('<small>没单独改过的格子跟着变</small>', '<small>所有格子的文字一起替换，可撤销</small>')
 
 html = (
     '<!DOCTYPE html>\n<html lang="zh-CN">\n<head>\n'

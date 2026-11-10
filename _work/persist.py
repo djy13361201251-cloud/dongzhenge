@@ -89,4 +89,16 @@ function pinTexts(){
         " if(ty.indexOf('tx:')===0) G.clearTxt(ty.slice(3)); if(o.aid) G.unpinAsset(o.aid);"
         " delete S.over[SEL]; $('popFields').dataset.for=''; syncPop()};",
         js, 'reset clears memory')
+        # 「整套替换」是用户主动的整体替换：覆盖所有格子的文字（含按钮），并清掉文字记忆。
+    # 单独改过的文字在抽卡 / 换排列时照常保留，只有整套替换或「还原」才会改掉它。
+    js = must(
+        "['title','lines'].forEach(k=>{const i=$('t-'+k); i.oninput=()=>{S.text[k]=i.value; loadFonts()}});",
+        "['title','lines'].forEach(k=>{const i=$('t-'+k);"
+        " i.addEventListener('focus',()=>{if(!i.__u){pushUndo(); i.__u=1}}); i.addEventListener('blur',()=>{i.__u=0});"
+        " i.oninput=()=>{S.text[k]=i.value; G.clearAllTxt();"
+        " Object.keys(S.over).forEach(function(c){ var o=S.over[c]; if(o&&o.txt) delete o.txt });"
+        " if(typeof txKey!=='undefined') txKey=''; if(SEL>=0){ $('popFields').dataset.for=''; syncPop() } loadFonts()}});",
+        js, 'global replace overrides all')
+    js = must("clearTxt:l=>{ delete TXT_MEM[l] },",
+              "clearTxt:l=>{ delete TXT_MEM[l] },clearAllTxt:()=>{ TXT_MEM={} },", js, 'clearAllTxt api')
     return js

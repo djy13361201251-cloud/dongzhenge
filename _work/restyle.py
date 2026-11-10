@@ -293,6 +293,25 @@ body.stageonly .toast{bottom:96px;bottom:calc(96px + var(--safe-area-inset-botto
 .filebtn .beta{display:inline-block;margin-left:4px;padding:0 8px;height:20px;line-height:20px;border-radius:10px;
   background:#FFD43B;color:#141414;font-size:11px;font-weight:700;vertical-align:middle}
 
+/* 口播模式：进度条上的卡点刻度 + 卡点工具条 */
+.scrubwrap{position:relative;flex:1;min-width:0;display:flex;align-items:center}
+.scrubwrap > input[type=range]{width:100%}
+.cuemarks{position:absolute;left:8px;right:8px;top:50%;height:0;pointer-events:none}
+.cuemarks i{position:absolute;top:-8px;width:4px;height:16px;margin-left:-2px;border-radius:2px;background:#FF4FA3;
+  box-shadow:0 0 0 2px var(--sheet)}
+.vorow{flex:0 0 100%;width:100%;margin-top:12px}
+.vobar{display:flex;align-items:center;flex-wrap:wrap}
+.vobar > *{margin:0 8px 8px 0!important}
+.votag{display:inline-block;height:24px;line-height:24px;padding:0 12px;border-radius:12px;background:#FF4FA3;color:#fff;
+  font-size:12px;font-weight:700}
+.cuelist{display:flex;flex-wrap:wrap}
+.cue{display:inline-flex;align-items:center;margin:0 8px 8px 0;border-radius:16px;background:var(--hover);overflow:hidden}
+.cue > button{border:0;background:none;font:inherit;font-size:12px;color:var(--ink);cursor:pointer;height:32px;padding:0 12px}
+.cue > .cuedel{padding:0 12px 0 4px;color:var(--muted);font-size:16px}
+.cue.on{background:var(--ink)}
+.cue.on > button{color:#fff}
+.vo-on .editHint{display:none}
+
 /* 浮动提示：手机上状态栏文字不可见，消息从底部浮出 */
 .toast{position:fixed;left:16px;right:16px;bottom:24px;bottom:calc(24px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
   z-index:200;margin:0 auto;max-width:480px;padding:12px 16px;border-radius:16px;background:rgba(20,20,20,.92);color:#fff;
