@@ -112,7 +112,7 @@ function applyScene(t){
   const sc=D.scene; if(!sc) return;
   const Ls=L[sc.layout], rects=cellsOf(sc,t);
   const pal=typeof sc.pal==='string'?(PALS[sc.pal]||G.PRESETS[sc.pal]):sc.pal, st=sc.style;
-  Object.assign(S,{aspect:'9:16',cols:6,rows:12,count:Ls.length,seed:sc.seed,variance:50,bias:0,shuffle:false,dur:600,
+  Object.assign(S,{aspect:'9:16',cols:6,rows:12,count:Ls.length,seed:sc.seed,variance:50,bias:0,shuffle:false,dur:600,grain:0,
     style:st, pal:Object.assign({},pal),
     gutter:st==='spec'?12:st==='cute'?20:22, pad:st==='chaos'?56:st==='cute'?32:24, radius:st==='spec'?2:st==='cute'?40:18});
   G.setCells(rects.map(r=>({x:r[0],y:r[1],w:r[2],h:r[3]})));
