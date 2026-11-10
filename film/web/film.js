@@ -34,40 +34,59 @@ const L={
   A:[{r:[0,0,4,3],role:'head',f:'c2'},{r:[4,0,2,3],role:'face'},
      {r:[0,3,6,1],role:'tick',f:'c1'},
      {r:[0,4,2,3],role:'dial',f:'c3'},{r:[2,4,4,3],role:'halftone',f:'c4'},
-     {r:[0,7,3,3],role:'cta',f:'c1'},{r:[3,7,3,3],role:'dots',f:'c3'},
+     {r:[0,7,3,3],role:'cta',f:'c1'},{r:[3,7,3,3],role:'dots',f:'paper'},
      {r:[0,10,6,2],role:'bands',f:'c2'}],
   B:[{r:[0,0,2,3],role:'face'},{r:[2,0,4,3],role:'head',f:'c1'},
-     {r:[0,3,3,4],role:'lens',f:'c3'},{r:[3,3,3,2],role:'cta',f:'c4'},{r:[3,5,3,2],role:'sparkle',f:'c2'},
+     {r:[0,3,3,4],role:'lens',f:'paper'},{r:[3,3,3,2],role:'cta',f:'c4'},{r:[3,5,3,2],role:'sparkle',f:'c2'},
      {r:[0,7,6,1],role:'tick',f:'ink'},
      {r:[0,8,2,2],role:'shape',f:'c2'},{r:[2,8,4,2],role:'stripes',f:'c4'},
      {r:[0,10,6,2],role:'checker',f:'c3'}],
   C:[{r:[0,0,6,1],role:'tick',f:'c1'},
      {r:[0,1,4,4],role:'head',f:'c2'},{r:[4,1,2,3],role:'face'},{r:[4,4,2,1],role:'swatch',f:'c3'},
-     {r:[0,5,2,5],role:'letter',f:'c4'},{r:[2,5,4,3],role:'halftone',f:'c1'},{r:[2,8,2,2],role:'cta',f:'c2'},{r:[4,8,2,2],role:'dial',f:'c3'},
+     {r:[0,5,2,5],role:'letter',f:'c4'},{r:[2,5,4,3],role:'halftone',f:'paper'},{r:[2,8,2,2],role:'cta',f:'c2'},{r:[4,8,2,2],role:'dial',f:'c3'},
      {r:[0,10,6,2],role:'wave',f:'ink'}],
-  CHAOS:[{r:[0,0,4,2],role:'head',f:'c4'},{r:[4,0,2,3],role:'face'},{r:[0,2,2,2],role:'sparkle',f:'c2'},{r:[2,2,2,2],role:'lens',f:'c1'},
+  CHAOS:[{r:[0,0,4,2],role:'head',f:'c4'},{r:[4,0,2,3],role:'face'},{r:[0,2,2,2],role:'sparkle',f:'c2'},{r:[2,2,2,2],role:'lens',f:'paper'},
      {r:[0,4,3,2],role:'stripes',f:'c3'},{r:[3,3,3,3],role:'shape',f:'c2'},{r:[0,6,6,1],role:'tick',f:'c1'},
      {r:[0,7,2,3],role:'letter',f:'c3'},{r:[2,7,2,3],role:'cta',f:'c4'},{r:[4,7,2,3],role:'dots',f:'c1'},
      {r:[0,10,3,2],role:'checker',f:'c4'},{r:[3,10,3,2],role:'sparkle',f:'c2'}],
   CUTE:[{r:[0,0,4,4],role:'head',f:'c3'},{r:[4,0,2,3],role:'face'},{r:[4,3,2,1],role:'tick',f:'c1'},
-     {r:[0,4,3,4],role:'face_',f:'c2'},{r:[3,4,3,4],role:'dots',f:'c4'},
+     {r:[0,4,3,4],role:'face_',f:'c2'},{r:[3,4,3,4],role:'dots',f:'paper'},
      {r:[0,8,6,2],role:'cta',f:'c1'},{r:[0,10,6,2],role:'wave',f:'c3'}],
   SPEC:[{r:[0,0,4,4],role:'head',f:'c3'},{r:[4,0,2,3],role:'face'},{r:[4,3,2,1],role:'swatch',f:'c1'},
      {r:[0,4,6,1],role:'tick',f:'c2'},
-     {r:[0,5,2,3],role:'dial',f:'c4'},{r:[2,5,2,3],role:'letter',f:'c3'},{r:[4,5,2,3],role:'halftone',f:'c1'},
+     {r:[0,5,2,3],role:'dial',f:'paper'},{r:[2,5,2,3],role:'letter',f:'c3'},{r:[4,5,2,3],role:'halftone',f:'c1'},
      {r:[0,8,6,2],role:'cta',f:'c2'},{r:[0,10,6,2],role:'bands',f:'c4'}],
   T:[{r:[0,0,6,3],role:'tx:headline',f:'c3',txt:{h:'动真格'}},
      {r:[0,3,6,2],role:'tx:stack',f:'c1',txt:{h:'风格化动效海报',s:'不用 AE · 一键生成'}},
      {r:[0,5,4,3],role:'tx:body',f:'c4',txt:{h:'三种风格',b:'可爱 · 规整 · 混乱\n抽一张 换版式与配色'}},
-     {r:[4,5,2,3],role:'dots',f:'c2'},
+     {r:[4,5,2,3],role:'dots',f:'paper'},
      {r:[0,8,4,2],role:'cta',f:'c1'},{r:[4,8,2,2],role:'face_',f:'c3'},
      {r:[0,10,6,2],role:'bands',f:'c2'}],
   P:[{r:[0,0,6,3],role:'head',f:'c2'},{r:[0,3,6,1],role:'tick',f:'c1'},
-     {r:[0,4,3,3],role:'swatch',f:'c3'},{r:[3,4,3,3],role:'halftone',f:'c4'},
+     {r:[0,4,3,3],role:'swatch',f:'c3'},{r:[3,4,3,3],role:'halftone',f:'paper'},
      {r:[0,7,3,3],role:'photo',f:'c1'},{r:[3,7,3,3],role:'cta',f:'c1'},
      {r:[0,10,6,2],role:'bands',f:'c2'}],
 };
-const PHOTO_PAL={name:'吸色',ground:'#D7F25B',paper:'#FFFFFF',ink:'#141414',c1:'#FF4FA3',c2:'#2F6BFF',c3:'#FFD43B',c4:'#7B4DFF'};
+const PALS={
+  teal:{name:'薄荷',ground:'#14C3A0',paper:'#F6EEEA',ink:'#1E2A36',c1:'#F0C4D0',c2:'#C6DC52',c3:'#E87A1E',c4:'#F3D9A4'},
+  night:{name:'夜市',ground:'#0A0C0A',paper:'#EDE9E3',ink:'#0A0C0A',c1:'#4B7CF4',c2:'#E95F26',c3:'#C961F5',c4:'#D5CA5F'},
+  cream:{name:'奶油紫',ground:'#B8A1FF',paper:'#FBF8FF',ink:'#211640',c1:'#FFDE59',c2:'#FF6F91',c3:'#3A86FF',c4:'#FF9F43'},
+  peach:{name:'蜜桃苏打',ground:'#FFC4B8',paper:'#FFF8F5',ink:'#3A1F1A',c1:'#FF5D73',c2:'#3E7BFA',c3:'#FFE57F',c4:'#42D6A4'},
+  blues:{name:'蓝调',ground:'#1446A0',paper:'#F4F6FF',ink:'#0A1A3A',c1:'#DB3069',c2:'#F5D547',c3:'#EBEBD3',c4:'#3DDC97'},
+  olive:{name:'橄榄霓虹',ground:'#1E2A1A',paper:'#F4F1E6',ink:'#1E2A1A',c1:'#C6F432',c2:'#FF6B35',c3:'#7FD1FF',c4:'#F7C8E0'},
+  berry:{name:'草莓牛奶',ground:'#FFD1DC',paper:'#FFF8FA',ink:'#3B1C2A',c1:'#FF4F79',c2:'#FFB703',c3:'#8ECAE6',c4:'#219EBC'},
+  mango:{name:'芒果',ground:'#FFB627',paper:'#FFF8E8',ink:'#2A1B0F',c1:'#FF5E3A',c2:'#1E64FF',c3:'#FFE6A7',c4:'#00A676'},
+  film:{name:'老电影',ground:'#E9D8A6',paper:'#FBF6E9',ink:'#001219',c1:'#AE2012',c2:'#005F73',c3:'#EE9B00',c4:'#94D2BD'},
+  beach:{name:'沙滩',ground:'#F6E3BA',paper:'#FFFCF3',ink:'#2A2116',c1:'#FF6B6B',c2:'#4ECDC4',c3:'#1A535C',c4:'#FFE66D'},
+  sakura:{name:'樱花地铁',ground:'#F7A1C4',paper:'#FFF5F9',ink:'#2B1636',c1:'#3A3FD9',c2:'#FFE45E',c3:'#FF4D4D',c4:'#6FE3C1'},
+  tv:{name:'复古电视',ground:'#F2E8CF',paper:'#FFFFFF',ink:'#1D1D1B',c1:'#E63946',c2:'#1D3557',c3:'#F4A261',c4:'#2A9D8F'},
+  neon:{name:'霓虹夜',ground:'#14051F',paper:'#F2E9FF',ink:'#14051F',c1:'#FF2E88',c2:'#00F5D4',c3:'#FEE440',c4:'#9B5DE5'},
+  caramel:{name:'焦糖',ground:'#C4622D',paper:'#FBEFE3',ink:'#2A140A',c1:'#F7C873',c2:'#3C6E71',c3:'#F4B6C2',c4:'#284B63'},
+  dusk:{name:'晚霞汽水',ground:'#FF6F59',paper:'#FFF4E6',ink:'#1D1A2F',c1:'#FFD23F',c2:'#3D5AFE',c3:'#FF9EC7',c4:'#00B894'},
+  blueberry:{name:'蓝莓奶昔',ground:'#5B5FEF',paper:'#F6F2FF',ink:'#120F2E',c1:'#FFB4D6',c2:'#FFE066',c3:'#2EC4B6',c4:'#FF5E5B'},
+  jelly:{name:'果冻',ground:'#FF66C4',paper:'#FFF2FA',ink:'#2A0F2A',c1:'#FFE600',c2:'#00C3FF',c3:'#8A5CFF',c4:'#3DDC84'},
+};
+const PHOTO_PAL=PALS.jelly;
 
 // ---------------------------------------------------------------- 导演状态
 let D, EV=[], evI=0, lastT=-1;
@@ -92,7 +111,7 @@ function dragK(t){
 function applyScene(t){
   const sc=D.scene; if(!sc) return;
   const Ls=L[sc.layout], rects=cellsOf(sc,t);
-  const pal=typeof sc.pal==='string'?G.PRESETS[sc.pal]:sc.pal, st=sc.style;
+  const pal=typeof sc.pal==='string'?(PALS[sc.pal]||G.PRESETS[sc.pal]):sc.pal, st=sc.style;
   Object.assign(S,{aspect:'9:16',cols:6,rows:12,count:Ls.length,seed:sc.seed,variance:50,bias:0,shuffle:false,dur:600,
     style:st, pal:Object.assign({},pal),
     gutter:st==='spec'?12:st==='cute'?20:22, pad:st==='chaos'?56:st==='cute'?32:24, radius:st==='spec'?2:st==='cute'?40:18});
@@ -126,27 +145,27 @@ function build(){
   const idx=(lay,role)=>L[lay].findIndex(c=>c.role===role);
 
   // ① 开场钩子
-  scene(0,{layout:'A',style:'spec',pal:'lemon',head:HEAD[0],seed:3});
-  scene(at('丝滑'),{layout:'B',style:'spec',pal:'volt',head:HEAD[1],seed:5});
-  scene(at('海报'),{layout:'C',style:'spec',pal:'tomint',head:HEAD[2],seed:9});
-  scene(at('粘览'),{layout:'A',style:'cute',pal:'soda',head:HEAD[1],seed:11});
-  scene(at('Cloud'),{layout:'B',style:'spec',pal:'cobalt',head:'Claude 出品',seed:13});
-  scene(at('打开网页'),{layout:'C',style:'spec',pal:'lemon',head:HEAD[2],seed:15});
+  scene(0,{layout:'A',style:'spec',pal:'teal',head:HEAD[0],seed:3});
+  scene(at('丝滑'),{layout:'B',style:'spec',pal:'night',head:HEAD[1],seed:5});
+  scene(at('海报'),{layout:'C',style:'spec',pal:'cream',head:HEAD[2],seed:9});
+  scene(at('粘览'),{layout:'A',style:'cute',pal:'peach',head:HEAD[1],seed:11});
+  scene(at('Cloud'),{layout:'B',style:'spec',pal:'blues',head:'Claude 出品',seed:13});
+  scene(at('打开网页'),{layout:'C',style:'spec',pal:'teal',head:HEAD[2],seed:15});
 
   // ② 抽一张
-  scene(at('抽一张'),{layout:'A',style:'spec',pal:'meadow',head:'抽一张',seed:21}); press(at('抽一张'),idx('A','cta'));
-  scene(at('抽卡'),{layout:'B',style:'cute',pal:'rose',head:'风格抽卡',seed:23}); press(at('抽卡'),idx('B','cta'));
-  scene(at('每抽一次'),{layout:'C',style:'spec',pal:'pasture',head:HEAD[2],seed:25}); press(at('每抽一次'),idx('C','cta'));
-  scene(at('配色',14),{layout:'A',style:'spec',pal:'clay',head:'换排版 换配色',seed:27});
+  scene(at('抽一张'),{layout:'A',style:'spec',pal:'olive',head:'抽一张',seed:21}); press(at('抽一张'),idx('A','cta'));
+  scene(at('抽卡'),{layout:'B',style:'cute',pal:'berry',head:'风格抽卡',seed:23}); press(at('抽卡'),idx('B','cta'));
+  scene(at('每抽一次'),{layout:'C',style:'spec',pal:'mango',head:HEAD[2],seed:25}); press(at('每抽一次'),idx('C','cta'));
+  scene(at('配色',14),{layout:'A',style:'spec',pal:'film',head:'换排版 换配色',seed:27});
 
   // ③ 三种风格
-  scene(at('三种风格'),{layout:'A',style:'spec',pal:'snow',head:'三种风格',seed:31});
-  scene(at('混乱'),{layout:'CHAOS',style:'chaos',pal:'market',head:'混乱',seed:33});
-  scene(at('可爱'),{layout:'CUTE',style:'cute',pal:'plaid',head:'可爱',seed:35});
-  scene(at('规整'),{layout:'SPEC',style:'spec',pal:'spec',head:'规整',seed:37});
+  scene(at('三种风格'),{layout:'A',style:'spec',pal:'beach',head:'三种风格',seed:31});
+  scene(at('混乱'),{layout:'CHAOS',style:'chaos',pal:'night',head:'混乱',seed:33});
+  scene(at('可爱'),{layout:'CUTE',style:'cute',pal:'sakura',head:'可爱',seed:35});
+  scene(at('规整'),{layout:'SPEC',style:'spec',pal:'tv',head:'规整',seed:37});
 
   // ④ 单格修改
-  scene(at('单独修改'),{layout:'A',style:'spec',pal:'cobalt',head:'单独修改',seed:41});
+  scene(at('单独修改'),{layout:'A',style:'spec',pal:'teal',head:'单独修改',seed:41});
   const iDial=idx('A','dial'), iHalf=idx('A','halftone'), iDots=idx('A','dots');
   sel(at('点击它'),iDial); mod(at('切换格式'),iDial,{role:'sparkle'});
   sel(at('改文字'),0); set(at('改文字')+0.15,sc=>{ sc.head='改' }); set(at('文字',24.6),sc=>{ sc.head='改文字' }); set(at('内容',25),sc=>{ sc.head='改文字内容' });
@@ -157,30 +176,30 @@ function build(){
   ev(at('里面的文字'),d=>{ d.drag=null; d.dirty=true });
 
   // ⑤ 混乱模式
-  scene(at('如果你觉得'),{layout:'SPEC',style:'spec',pal:'navy',head:'太规整？',seed:51});
-  scene(at('混乱模式'),{layout:'CHAOS',style:'chaos',pal:'volt',head:'混乱模式',seed:53});
+  scene(at('如果你觉得'),{layout:'SPEC',style:'spec',pal:'film',head:'太规整？',seed:51});
+  scene(at('混乱模式'),{layout:'CHAOS',style:'chaos',pal:'neon',head:'混乱模式',seed:53});
   set(at('鬼马'),sc=>{ sc.head='更鬼马' });
   set(at('灵动'),sc=>{ sc.head='更灵动' });
 
   // ⑥ 文字层级（不露脸）
-  scene(at('文字部分'),{layout:'T',style:'spec',pal:'cobalt',seed:61});
+  scene(at('文字部分'),{layout:'T',style:'spec',pal:'cream',seed:61});
   sel(at('主标题'),0); sel(at('副标题'),1); sel(at('正文'),2); sel(at('按钮',44),4); sel(at('在右边'));
-  scene(at('换成'),{layout:'T',style:'spec',pal:'cobalt',seed:61});
+  scene(at('换成'),{layout:'T',style:'spec',pal:'cream',seed:61});
   mod(at('换成'),0,{txt:{h:EVENT.title}}); mod(at('换成'),1,{txt:{h:EVENT.date,s:EVENT.place}});
   mod(at('换成'),2,{txt:{h:EVENT.place,b:EVENT.note+'\n'+EVENT.date}}); mod(at('换成'),4,{cta:EVENT.cta});
 
   // ⑦ 配色（不露脸）
-  scene(at('另外'),{layout:'P',style:'spec',pal:'soda',head:'配色',seed:71});
-  set(at('配色库'),sc=>{ sc.pal='lemon'; sc.head='配色库' });
-  set(at('选择',53),sc=>{ sc.pal='volt' });
-  set(at('自己选择'),sc=>{ sc.pal=Object.assign({},G.PRESETS.tomint,{c1:'#7B4DFF',name:'自选'}); sc.head='自选颜色' });
+  scene(at('另外'),{layout:'P',style:'spec',pal:'caramel',head:'配色',seed:71});
+  set(at('配色库'),sc=>{ sc.pal='dusk'; sc.head='配色库' });
+  set(at('选择',53),sc=>{ sc.pal='blueberry' });
+  set(at('自己选择'),sc=>{ sc.pal=Object.assign({},PALS.dusk,{c1:'#7B4DFF',c4:'#14C3A0',name:'自选'}); sc.head='自选颜色' });
   sel(at('拖入图片'),idx('P','photo')); set(at('拖入图片'),sc=>{ sc.head='拖图吸色' });
   scene(at('吸色'),{layout:'P',style:'spec',pal:PHOTO_PAL,head:'一键吸色',seed:73});
 
   // ⑧ 全屏口播 → 拉远
   ev(at('我也'),d=>{ d.mode='full' },0);
   const zEnd=at('这样',62,true);
-  ev(zEnd,d=>{ d.mode='zoom'; d.zoom={t0:zEnd,t1:zEnd+0.9}; d.scene=sceneOf({layout:'A',style:'spec',pal:'tomint',head:'动真格',seed:81}); d.restartT=zEnd-1.2; d.sel=[]; d.dirty=true },0);
+  ev(zEnd,d=>{ d.mode='zoom'; d.zoom={t0:zEnd,t1:zEnd+0.9}; d.scene=sceneOf({layout:'A',style:'spec',pal:'teal',head:'动真格',seed:81}); d.restartT=zEnd-1.2; d.sel=[]; d.dirty=true },0);
   ev(zEnd+0.9,d=>{ d.mode='grid' },0);
 
   // ⑨ 结尾
@@ -249,7 +268,10 @@ async function frame(n){
 window.FILM={
   async init(){
     WORDS=(await (await fetch('words.json')).json()).segments.flatMap(s=>s.words);
-    PHOTO=await loadImg('photo.png');
+    { const keep=G.getStyle(); const c=document.createElement('canvas');
+      Object.assign(S,{aspect:'1:1',style:'chaos',pal:Object.assign({},PALS.jelly),shuffle:false,dur:9});
+      G.drawBest(4242,{tier:'R',keepPal:true}); S.aspect='1:1'; S.pal=Object.assign({},PALS.jelly); S.style='chaos';
+      G.render(c.getContext('2d'),3.2); PHOTO=c; G.setStyle(keep); }
     try{ await document.fonts.load('900 80px "Noto Sans SC"','动真格不用丝滑一键生成抽张三种风格混乱可爱规整') }catch(e){}
     if(document.fonts&&document.fonts.ready) await document.fonts.ready;
     D=freshD(); build(); lastT=-1;
