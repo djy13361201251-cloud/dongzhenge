@@ -287,6 +287,15 @@ body.stageonly #fs{position:fixed!important;display:inline-flex!important;left:5
   transform:translateX(-50%);z-index:300;height:44px;width:auto!important;padding:0 24px;margin:0!important;
   border-radius:22px;background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.28);
   -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);font-size:15px}
+/* 全屏演示：盖过小红书顶部留白与手机固定布局，画面按剩余高度完整放下；锁定角标、选框不显示 */
+body.stageonly .app{padding:0!important;height:100vh;height:var(--appH,100vh)!important;max-width:none}
+body.stageonly .main,body.stageonly .desk,body.stageonly .stage{height:100vh;height:var(--appH,100vh)!important;margin:0!important}
+body.stageonly .stage canvas{max-height:100vh;max-height:var(--appH,100vh)}
+.in-xhs.stageonly .stage,.in-xhs .stageonly .stage,body.in-xhs.stageonly .stage{box-sizing:border-box;
+  padding-top:48px;padding-top:calc(48px + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)))}
+.in-xhs.stageonly .stage canvas,.in-xhs .stageonly .stage canvas{
+  max-height:calc(100vh - 56px);max-height:calc(var(--appH,100vh) - 48px - var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) - 8px)}
+body.stageonly .lockpin,body.stageonly .selbox,body.stageonly .hovbox,body.stageonly .badge{display:none!important}
 body.stageonly .toast{bottom:96px;bottom:calc(96px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)))}
 
 /* 小红书内「上传视频」测试中角标 */
