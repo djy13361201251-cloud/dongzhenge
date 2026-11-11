@@ -52,35 +52,62 @@ def apply(js, must, fail):
   r.readAsDataURL(f);
 }""",
         r"""var IMG_MAX=2048;
-// 画到 canvas 上缩放，返回 {src,img}
-function shrinkTo(source,w,h,type,cb){
+// 小红书真机：data:/blob: 图片可能被容器拦截，相册照片「读取不了」。
+// 依次尝试：data URL → blob URL → createImageBitmap → 写成本地临时文件再加载；
+// 解码成功后一律画到 canvas 上（canvas 可直接画进海报、可取色），缩略图在容器内用临时文件路径。
+function inMT(){ return (typeof mt==='function')&&mt()&&typeof MT.writeTempFile==='function' }
+function loadImg(src,ok,bad){ var im=new Image(); im.onload=function(){ ok(im) }; im.onerror=function(){ bad('加载失败') }; im.src=src }
+function toCanvas(source,w,h){
   var k=Math.min(1,IMG_MAX/Math.max(w,h));
   var c=document.createElement('canvas'); c.width=Math.max(1,Math.round(w*k)); c.height=Math.max(1,Math.round(h*k));
-  try{ c.getContext('2d').drawImage(source,0,0,c.width,c.height) }catch(e){ return cb(new Error('图片解码失败')) }
-  var src; try{ src=c.toDataURL(type==='image/png'?'image/png':'image/jpeg',0.9) }catch(e){ return cb(new Error('图片解码失败')) }
-  var im=new Image();
-  im.onload=function(){ cb(null,{src:src,img:im}) };
-  im.onerror=function(){ cb(new Error('图片解码失败')) };
-  im.src=src;
+  c.getContext('2d').drawImage(source,0,0,c.width,c.height); return c;
+}
+// source 已解码：转成 {src,img}。src 给缩略图用，img 给画布用
+function finish(source,w,h,type,cb,why){
+  var c; try{ c=toCanvas(source,w,h) }catch(e){ return cb(new Error('图片解码失败（'+why.concat('画布').join('；')+'）')) }
+  var src=null; try{ src=c.toDataURL(type==='image/png'?'image/png':'image/jpeg',0.9) }catch(e){}
+  if(!src) return cb(null,{src:'',img:c});
+  if(!inMT()) return loadImg(src,function(im){ cb(null,{src:src,img:im}) },function(){ cb(null,{src:src,img:c}) });
+  // 容器内：缩略图走本地文件路径（data: 可能显示不了），画布用 canvas
+  loadImg(src,function(){ cb(null,{src:src,img:c}) },function(){
+    MT.writeTempFile({data:src}).then(function(t){ cb(null,{src:(t&&t.filePath)||src,img:c}) },function(){ cb(null,{src:src,img:c}) });
+  });
 }
 function readImageFile(f, cb){
-  var r=new FileReader();
-  function viaBitmap(){
-    if(typeof createImageBitmap!=='function') return cb(new Error('格式不支持'));
-    createImageBitmap(f).then(function(bm){ shrinkTo(bm,bm.width,bm.height,'image/jpeg',cb) },
-                              function(){ cb(new Error('格式不支持')) });
+  var why=[], type=f.type||'image/jpeg', dataURL=null;
+  function fail(){ cb(new Error('照片读取不了（'+why.join('；')+'）')) }
+  function viaTemp(){
+    if(!inMT()||!dataURL){ why.push('临时文件不可用'); return fail() }
+    MT.writeTempFile({data:dataURL}).then(function(t){
+      if(!t||!t.filePath){ why.push('临时文件无路径'); return fail() }
+      loadImg(t.filePath,function(im){
+        var w=im.naturalWidth||im.width, h=im.naturalHeight||im.height;
+        var c; try{ c=toCanvas(im,w,h); c.getContext('2d').getImageData(0,0,1,1) }catch(e){ return cb(null,{src:t.filePath,img:im}) }
+        cb(null,{src:t.filePath,img:c});
+      },function(){ why.push('本地文件加载失败'); fail() });
+    },function(e){ why.push('写临时文件失败'+((e&&e.errMsg)?':'+e.errMsg:'')); fail() });
   }
+  function viaBitmap(){
+    if(typeof createImageBitmap!=='function'){ why.push('无位图解码'); return viaTemp() }
+    createImageBitmap(f).then(function(bm){ finish(bm,bm.width,bm.height,'image/jpeg',cb,why) },
+                              function(){ why.push('位图解码失败'); viaTemp() });
+  }
+  function viaBlob(){
+    var u=null; try{ u=URL.createObjectURL(f) }catch(e){}
+    if(!u){ why.push('blob 不可用'); return viaBitmap() }
+    loadImg(u,function(im){ finish(im,im.naturalWidth||im.width,im.naturalHeight||im.height,type,cb,why); setTimeout(function(){ try{URL.revokeObjectURL(u)}catch(e){} },3000) },
+              function(){ why.push('blob 加载失败'); try{URL.revokeObjectURL(u)}catch(e){} viaBitmap() });
+  }
+  var r=new FileReader();
   r.onload=function(){
-    var im=new Image();
-    im.onload=function(){
+    dataURL=r.result;
+    loadImg(dataURL,function(im){
       var w=im.naturalWidth||im.width, h=im.naturalHeight||im.height;
-      if(Math.max(w,h)<=IMG_MAX) return cb(null,{src:r.result,img:im});
-      shrinkTo(im,w,h,f.type,cb);
-    };
-    im.onerror=viaBitmap;
-    im.src=r.result;
+      if(!inMT()&&Math.max(w,h)<=IMG_MAX) return cb(null,{src:dataURL,img:im});
+      finish(im,w,h,type,cb,why);
+    },function(){ why.push('data 加载失败'); viaBlob() });
   };
-  r.onerror=function(){ cb(new Error('文件读取失败')) };
+  r.onerror=function(){ why.push('文件读取失败'); viaBlob() };
   r.readAsDataURL(f);
 }""",
         js, 'readImageFile robust')
@@ -192,8 +219,12 @@ function fit(){""",
     # 兜底：点到按钮（label）但没点中 input 时，脚本主动打开选择器；选完立刻提示，便于判断卡在哪一步。
     # 取色读图失败（HEIC 等）时给出提示，不再静默。
     js = must("$('impImg').onchange=()=>{const f=$('impImg').files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{const im=new Image(); im.onload=()=>{",
-              "$('impImg').onchange=()=>{const f=$('impImg').files[0]; if(!f){ st.textContent='没有选到图片'; return } st.textContent='正在读取图片取色…'; const r=new FileReader(); r.onerror=()=>{st.textContent='取色失败：图片读取失败'}; r.onload=()=>{const im=new Image(); im.onerror=()=>{ if(typeof readImageFile==='function') readImageFile(f,function(err,res){ if(err||!res){ st.textContent='取色失败：这张图片格式读不了，换一张 JPG / PNG 试试'; return } im.onerror=null; im.src=res.src }); else st.textContent='取色失败：图片格式不支持' }; im.onload=()=>{",
+              "$('impImg').onchange=()=>{const f=$('impImg').files[0]; if(!f){ st.textContent='没有选到图片'; return } st.textContent='正在读取图片取色…';"
+              " readImageFile(f,function(err,res){ if(err||!res){ st.textContent='取色失败：'+((err&&err.message)||'图片读取不了'); $('impImg').value=''; return } const im=res.img; try{ (()=>{",
               js, 'impImg robust')
+    js = must("  applyImport(out.map(toH),'图片'); $('impImg').value=''}; im.src=r.result}; r.readAsDataURL(f)};",
+              "  applyImport(out.map(toH),'图片'); $('impImg').value=''; st.textContent='已从图片取色'})() }catch(e){ st.textContent='取色失败：'+((e&&e.message)||e); $('impImg').value='' } })};",
+              js, 'impImg tail')
     js = js.rstrip()
     i = js.rfind('})();')
     js = js[:i] + r"""
