@@ -298,6 +298,9 @@ body.stageonly .stage canvas{max-height:100vh;max-height:var(--appH,100vh)}
 body.stageonly .lockpin,body.stageonly .selbox,body.stageonly .hovbox,body.stageonly .badge{display:none!important}
 body.stageonly .toast{bottom:96px;bottom:calc(96px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)))}
 
+/* 小红书内「上传视频」：保留按钮，暂不可点 */
+.filebtn.off{opacity:.4;pointer-events:none;cursor:default}
+.filebtn.off .fileov{display:none}
 /* 小红书内「上传视频」测试中角标 */
 .filebtn .beta{display:inline-block;margin-left:4px;padding:0 8px;height:20px;line-height:20px;border-radius:10px;
   background:#FFD43B;color:#141414;font-size:11px;font-weight:700;vertical-align:middle}
