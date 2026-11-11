@@ -1679,6 +1679,23 @@ function readImageFile(f, cb){
 
 // 容器禁 blob:/data: 媒体，但文件系统写入的文件句柄可作为 video.src（客户端 9.49+）
 var FS_ROOT=null, FS_CHUNK=0, LIVE_MEDIA={};
+async function storageDiag(){
+  try{ var i=await MT.getFileStorageInfo(); var mb=function(x){ return (x/1048576).toFixed(1) };
+    return '存储 '+mb(i.usedBytes||0)+'/'+mb(i.limitBytes||0)+'MB，'+(i.fileCount||0)+' 个文件，临时 '+mb(i.tmpUsedBytes||0)+'MB，单次写入上限 '+mb(i.writeChunkMaxBytes||0)+'MB' }
+  catch(e){ return '读不到存储信息 '+errText(e) }
+}
+async function cleanMedia(why){
+  if(typeof MT.readDir!=='function'||typeof MT.unlink!=='function') return;
+  var dirs=[FS_ROOT+'/media',FS_ROOT], n=0;
+  for(var d=0;d<dirs.length;d++){
+    try{ var r=await MT.readDir({dirPath:dirs[d]}); var fl=(r&&r.files)||[];
+      for(var k=0;k<fl.length;k++){ var name=typeof fl[k]==='string'?fl[k]:(fl[k].name||fl[k].path||''); if(!/\.mp4$/i.test(name)) continue;
+        var fp=name.indexOf('/')>=0?name:dirs[d]+'/'+name; if(LIVE_MEDIA[fp]) continue;
+        try{ await MT.unlink({filePath:fp}); n++ }catch(e){} } }catch(e){}
+  }
+  if(n) why.push('已清理旧视频 '+n+' 个');
+}
+var FS_MKDIR_ERR='';
 async function fsPrep(){
   if(FS_ROOT) return true;
   if(typeof MT.writeFile!=='function'||typeof MT.appendFile!=='function') return false;
@@ -1686,7 +1703,7 @@ async function fsPrep(){
   FS_ROOT=lo&&lo.miniToolEnv&&lo.miniToolEnv.userDataPath; if(!FS_ROOT) return false;
   try{ var info=await MT.getFileStorageInfo(); FS_CHUNK=info&&info.writeChunkMaxBytes||0 }catch(e){}
   if(!FS_CHUNK) FS_CHUNK=512*1024;
-  try{ await MT.mkdir({dirPath:FS_ROOT+'/media',recursive:true}) }catch(e){}
+  try{ await MT.mkdir({dirPath:FS_ROOT+'/media',recursive:true}) }catch(e){ FS_MKDIR_ERR=errText(e) }
   return true;
 }
 function sliceB64(f,start,end){ return new Promise(function(res,rej){ var r=new FileReader();
@@ -1731,19 +1748,28 @@ async function readVideoViaTemp(f, cb){
       try{ return cb(null,await playP(t.filePath)) }catch(e){ why.push('临时文件'+e.message) }
     } else why.push('无 writeTempFile');
   }catch(e){ why.push(errText(e)) }
-  // ② 备选：分片写入（小片 48KB）
+  // ② saveFile 不指定目标路径（由端上决定持久位置）
+  try{
+    if(t&&t.filePath&&typeof MT.saveFile==='function'){
+      var sv2=await MT.saveFile({tempFilePath:t.filePath}); var sp2=sv2&&(sv2.savedFilePath||sv2.filePath);
+      if(sp2){ LIVE_MEDIA[sp2]=1; try{ return cb(null,await playP(sp2)) }catch(e){ why.push('默认持久文件'+e.message) } }
+    }
+  }catch(e){ why.push('saveFile(默认) '+errText(e)) }
+  // ③ 清掉以前失败留下的视频文件，再一次性 writeFile 整个文件（不用 appendFile）
   try{
     if(await fsPrep()){
-      var path=FS_ROOT+'/media/v'+Date.now()+'.mp4', step=48*1024;
-      for(var pos=0;pos<f.size;pos+=step){
-        var b64=await sliceB64(f,pos,Math.min(f.size,pos+step));
-        if(pos===0) await MT.writeFile({filePath:path,data:b64,encoding:'base64'});
-        else await MT.appendFile({filePath:path,data:b64,encoding:'base64'});
+      await cleanMedia(why);
+      var b64all=await sliceB64(f,0,f.size);
+      var tries=[FS_ROOT+'/media/v'+Date.now()+'.mp4', FS_ROOT+'/v'+Date.now()+'.mp4'];
+      for(var q=0;q<tries.length;q++){
+        try{ await MT.writeFile({filePath:tries[q],data:b64all,encoding:'base64'});
+             LIVE_MEDIA[tries[q]]=1; var it=await playP(tries[q]); b64all=null; return cb(null,it) }
+        catch(e){ why.push((q?'根目录':'media')+'整写 '+errText(e)) }
       }
-      LIVE_MEDIA[path]=1;
-      try{ return cb(null,await playP(path)) }catch(e){ why.push('分片文件'+e.message) }
+      b64all=null;
     }
-  }catch(e){ why.push('分片写入 '+errText(e)) }
+  }catch(e){ why.push('整写 '+errText(e)) }
+  why.push(await storageDiag()); if(FS_MKDIR_ERR) why.push('建目录失败 '+FS_MKDIR_ERR);
   cb(new Error(why.join('；')));
 }
 // 主路径：视频元素直连。成功即可原帧率完整播放。
@@ -1859,7 +1885,7 @@ function onPick(ev){
       if(!err) return handle(null,item);
       if(mt()&&typeof MT.writeTempFile==='function') return readVideoViaTemp(f, function(e2,it2){
         if(!e2) return handle(null,it2);
-        handle(new Error('小红书内读取视频失败：'+e2.message+(f.size>30*1048576?'。建议先把视频压缩到 30MB 以内再上传':'')));
+        handle(new Error('小红书内读取视频失败：'+e2.message));
       });
       readVideoFile(f, handle);       // 原生不可用则抽帧
     });
