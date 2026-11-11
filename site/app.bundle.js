@@ -1388,7 +1388,7 @@ $('fSave').onclick=()=>{MINE.unshift(Object.assign({},S.pal,{name:'我的色卡'
 function applyImport(cols,src){if(!cols.length){$('impMsg').textContent='没有找到色号。'; return} pushUndo(); morph(); S.pal=fromFive(cols,'导入'); sync(); $('impMsg').textContent=`已从${src}导入 ${Math.min(cols.length,5)} 色。`}
 $('impGo').onclick=()=>{const t=$('impText').value; const m=t.match(/#?\b([0-9a-f]{6}|[0-9a-f]{3})\b/gi)||[]; applyImport(m.map(s=>'#'+s.replace('#','')),'色号')};
 $('impText').onkeydown=e=>{if(e.key==='Enter') $('impGo').click()};
-$('impImg').onchange=()=>{const f=$('impImg').files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{const im=new Image(); im.onload=()=>{
+$('impImg').onchange=()=>{const f=$('impImg').files[0]; if(!f){ st.textContent='没有选到图片'; return } st.textContent='正在读取图片取色…'; const r=new FileReader(); r.onerror=()=>{st.textContent='取色失败：图片读取失败'}; r.onload=()=>{const im=new Image(); im.onerror=()=>{ if(typeof readImageFile==='function') readImageFile(f,function(err,res){ if(err||!res){ st.textContent='取色失败：这张图片格式读不了，换一张 JPG / PNG 试试'; return } im.onerror=null; im.src=res.src }); else st.textContent='取色失败：图片格式不支持' }; im.onload=()=>{
   const c=document.createElement('canvas'); const k=Math.min(1,96/Math.max(im.width,im.height)); c.width=Math.max(1,Math.round(im.width*k)); c.height=Math.max(1,Math.round(im.height*k)); const g=c.getContext('2d'); g.drawImage(im,0,0,c.width,c.height);
   const d=g.getImageData(0,0,c.width,c.height).data; const px=[]; for(let i=0;i<d.length;i+=4){if(d[i+3]>200) px.push([d[i],d[i+1],d[i+2]])}
   // k-means, then pick 5 distinct centres by size; most common one becomes the ground
@@ -2055,4 +2055,17 @@ function delAsset(idx){
   sync();
 }
 
+
+// 上传按钮兜底：label 内点击未命中 input 时主动 click()
+(function(){
+  document.addEventListener('click',function(e){
+    var lb=e.target&&e.target.closest?e.target.closest('label.filebtn'):null; if(!lb) return;
+    var inp=lb.querySelector('input[type=file]'); if(!inp||e.target===inp) return;
+    e.preventDefault(); try{ inp.click() }catch(err){}
+  },true);
+  document.addEventListener('change',function(e){
+    var t=e.target; if(!t||t.type!=='file') return;
+    var n=t.files?t.files.length:0; if(!n&&st) st.textContent='没有选到文件';
+  },true);
+})();
 })();

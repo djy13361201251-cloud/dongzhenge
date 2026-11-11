@@ -356,7 +356,7 @@ body.stageonly .toast{bottom:96px;bottom:calc(96px + var(--safe-area-inset-botto
   .main > .desk,.main > .side{width:100%;box-sizing:border-box;align-self:stretch}
   .main > .desk{flex:none}
   .main > .side{flex:1;min-height:0;height:auto!important;margin-top:12px;overflow-x:hidden;overflow-y:auto!important;
-    -webkit-overflow-scrolling:touch;overscroll-behavior:contain;border-radius:var(--R) var(--R) 0 0;
+    overscroll-behavior:contain;border-radius:var(--R) var(--R) 0 0;
     padding-bottom:24px;padding-bottom:calc(24px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)))}
   .side .insp,.side #paneWrap{display:block;height:auto;overflow:visible}
   .side #paneWrap > .pane{overflow:visible;height:auto}

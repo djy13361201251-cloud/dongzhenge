@@ -187,4 +187,28 @@ function fit(){""",
         "    } }\n"
         "}",
         js, 'fit converge on mobile')
+    # ---- 真机扫码：上传 / 取色按钮点不开
+    # 1.10 起操作区是独立滚动容器，iOS 真机上透明覆盖的 input 命中区域可能错位。
+    # 兜底：点到按钮（label）但没点中 input 时，脚本主动打开选择器；选完立刻提示，便于判断卡在哪一步。
+    # 取色读图失败（HEIC 等）时给出提示，不再静默。
+    js = must("$('impImg').onchange=()=>{const f=$('impImg').files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{const im=new Image(); im.onload=()=>{",
+              "$('impImg').onchange=()=>{const f=$('impImg').files[0]; if(!f){ st.textContent='没有选到图片'; return } st.textContent='正在读取图片取色…'; const r=new FileReader(); r.onerror=()=>{st.textContent='取色失败：图片读取失败'}; r.onload=()=>{const im=new Image(); im.onerror=()=>{ if(typeof readImageFile==='function') readImageFile(f,function(err,res){ if(err||!res){ st.textContent='取色失败：这张图片格式读不了，换一张 JPG / PNG 试试'; return } im.onerror=null; im.src=res.src }); else st.textContent='取色失败：图片格式不支持' }; im.onload=()=>{",
+              js, 'impImg robust')
+    js = js.rstrip()
+    i = js.rfind('})();')
+    js = js[:i] + r"""
+// 上传按钮兜底：label 内点击未命中 input 时主动 click()
+(function(){
+  document.addEventListener('click',function(e){
+    var lb=e.target&&e.target.closest?e.target.closest('label.filebtn'):null; if(!lb) return;
+    var inp=lb.querySelector('input[type=file]'); if(!inp||e.target===inp) return;
+    e.preventDefault(); try{ inp.click() }catch(err){}
+  },true);
+  document.addEventListener('change',function(e){
+    var t=e.target; if(!t||t.type!=='file') return;
+    var n=t.files?t.files.length:0; if(!n&&st) st.textContent='没有选到文件';
+  },true);
+})();
+})();
+"""
     return js
