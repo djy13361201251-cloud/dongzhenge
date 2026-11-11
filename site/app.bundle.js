@@ -96,8 +96,8 @@ const S={
   hero:'auto', cseed:7, over:{}, overKey:'', cells:null, cellsKey:'', blank:0, textMix:35, plainMix:15,
   text:{title:'PRIVATE\nVIEW',lines:'08 NOV · SAT\nWEST BUND · SHANGHAI\nBY INVITATION\nRSVP NOW'},
 };
-const SIZES={'16:9':[1920,1080],'9:16':[1080,1920],'1:1':[1080,1080],'4:5':[1080,1350]};
-function size(){return SIZES[S.aspect]||SIZES['16:9']}
+const SIZES={'16:9':[1920,1080],'9:16':[1080,1920],'1:1':[1080,1080],'3:4':[1080,1440]};
+function size(){if(S.aspect==='4:5') S.aspect='3:4'; return SIZES[S.aspect]||SIZES['16:9']}
 
 // ---------- fonts ----------
 const CJK='"Noto Sans SC","Noto Sans CJK SC","PingFang SC","Microsoft YaHei",sans-serif';
@@ -1624,14 +1624,14 @@ var IMG_MAX=2048;
 // 解码成功后一律画到 canvas 上（canvas 可直接画进海报、可取色），缩略图在容器内用临时文件路径。
 function inMT(){ return (typeof mt==='function')&&mt()&&typeof MT.writeTempFile==='function' }
 function loadImg(src,ok,bad){ var im=new Image(); im.onload=function(){ ok(im) }; im.onerror=function(){ bad('加载失败') }; im.src=src }
-function toCanvas(source,w,h){
+function imgCanvas(source,w,h){
   var k=Math.min(1,IMG_MAX/Math.max(w,h));
   var c=document.createElement('canvas'); c.width=Math.max(1,Math.round(w*k)); c.height=Math.max(1,Math.round(h*k));
   c.getContext('2d').drawImage(source,0,0,c.width,c.height); return c;
 }
 // source 已解码：转成 {src,img}。src 给缩略图用，img 给画布用
 function finish(source,w,h,type,cb,why){
-  var c; try{ c=toCanvas(source,w,h) }catch(e){ return cb(new Error('图片解码失败（'+why.concat('画布').join('；')+'）')) }
+  var c; try{ c=imgCanvas(source,w,h) }catch(e){ return cb(new Error('图片解码失败（'+why.concat('画布').join('；')+'）')) }
   var src=null; try{ src=c.toDataURL(type==='image/png'?'image/png':'image/jpeg',0.9) }catch(e){}
   if(!src) return cb(null,{src:'',img:c});
   if(!inMT()) return loadImg(src,function(im){ cb(null,{src:src,img:im}) },function(){ cb(null,{src:src,img:c}) });
@@ -1649,7 +1649,7 @@ function readImageFile(f, cb){
       if(!t||!t.filePath){ why.push('临时文件无路径'); return fail() }
       loadImg(t.filePath,function(im){
         var w=im.naturalWidth||im.width, h=im.naturalHeight||im.height;
-        var c; try{ c=toCanvas(im,w,h); c.getContext('2d').getImageData(0,0,1,1) }catch(e){ return cb(null,{src:t.filePath,img:im}) }
+        var c; try{ c=imgCanvas(im,w,h); c.getContext('2d').getImageData(0,0,1,1) }catch(e){ return cb(null,{src:t.filePath,img:im}) }
         cb(null,{src:t.filePath,img:c});
       },function(){ why.push('本地文件加载失败'); fail() });
     },function(e){ why.push('写临时文件失败'+((e&&e.errMsg)?':'+e.errMsg:'')); fail() });
