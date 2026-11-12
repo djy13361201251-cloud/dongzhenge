@@ -17,9 +17,20 @@ def apply(js, must, fail):
         "var MT=window.xhs&&window.xhs.miniTool;",
         r"""var MT=window.xhs&&window.xhs.miniTool;
 var IN_XHS=!!MT||/xhs|xiaohongshu|discover\//i.test(navigator.userAgent);
-function mt(){ var m=window.xhs&&window.xhs.miniTool; if(m){ MT=m; IN_XHS=true } return MT }
-function waitMT(ms){ return new Promise(function(res){ var t0=Date.now();
-  (function tick(){ if(mt()||Date.now()-t0>ms) return res(MT); setTimeout(tick,100) })() }) }
+var MT_SEEN = MT?('已有:'+Object.keys(MT).length+'项'):'未注入';
+function mt(){ var m=window.xhs&&window.xhs.miniTool; if(m){ MT=m; IN_XHS=true; MT_SEEN='已有:'+Object.keys(m).length+'项' } return MT }
+// 容器注入的时机不确定：一直等到接口出现（最多 8 秒），期间不打断
+function waitMT(ms){ ms=ms||8000; return new Promise(function(res){ var t0=Date.now();
+  (function tick(){ if(mt()&&typeof MT.saveImageToPhotosAlbum==='function') return res(MT);
+    if(Date.now()-t0>ms) return res(MT); setTimeout(tick,120) })() }) }
+function mtDiag(){
+  var x=window.xhs, k=[];
+  k.push(x?('window.xhs 存在'):'window.xhs 不存在');
+  k.push(MT_SEEN);
+  if(x) k.push('xhs 字段:'+Object.keys(x).join(','));
+  k.push('UA:'+(navigator.userAgent||'').slice(0,60));
+  return k.join(' | ')
+}
 function errText(e){ return (e&&(e.errMsg||e.message||e.code))||String(e) }
 // 手机上 #status 不可见：任何状态文字同时浮出提示
 (function(){
@@ -56,9 +67,9 @@ if(IN_XHS){ ['fileall','popFileAll'].forEach(function(id){ var e=document.getEle
         "  return 'saved';\n"
         "}",
         r"""async function saveFile(name,blob){
-  await waitMT(IN_XHS?2000:0);
+  if(IN_XHS) await waitMT(8000);
   if(!MT || typeof MT.saveImageToPhotosAlbum!=='function'){
-    if(IN_XHS) throw new Error('小红书保存接口未就绪，请把小红书更新到最新版后重试');
+    if(IN_XHS) throw new Error('小红书接口未就绪（'+mtDiag()+'）');
     var r=localDownload(name,blob);
     if(r==='local') return 'local';
     var e=new Error('当前环境不支持保存'); e.code='unsupported'; throw e;
@@ -88,7 +99,7 @@ if(IN_XHS){ ['fileall','popFileAll'].forEach(function(id){ var e=document.getEle
     # ---- MP4：VideoEncoder 不可用时退到 MediaRecorder
     js = must(
         "  if(exporting) return; if(!window.VideoEncoder){st.textContent='这个浏览器不支持逐帧编码，请换用 Chrome 或 Edge。'; return}",
-        "  if(exporting) return; await waitMT(IN_XHS?2000:0); if(IN_XHS) return exportGIF();\n"
+        "  if(exporting) return; await waitMT(IN_XHS?8000:0); if(IN_XHS) return exportGIF();\n"
         "  if(!window.VideoEncoder){ return recordMP4() }",
         js, 'mp4 fallback entry')
     js = must("    const [W,H]=G.size(), fps=60, n=Math.round(S.dur*fps);",
@@ -108,7 +119,7 @@ if(IN_XHS){ ['fileall','popFileAll'].forEach(function(id){ var e=document.getEle
         r"""async function deliverMP4(blob){
   var mb=(blob.size/1048576).toFixed(1);
   if(!MT||typeof MT.saveImageToPhotosAlbum!=='function'){
-    if(IN_XHS) throw new Error('小红书保存接口未就绪，请更新小红书后重试');
+    if(IN_XHS) throw new Error('小红书接口未就绪（'+mtDiag()+'）');
     if(localDownload(`动真格_${S.aspect.replace(':','x')}_${stamp()}.mp4`,blob)!=='local') throw new Error('当前环境不支持保存视频');
     st.textContent=`已下载 MP4（${mb} MB）。`; return;
   }
@@ -188,10 +199,20 @@ async function exportGIF(){
     var blob=gw.end(); prog.style.width='100%';
     var mb=(blob.size/1048576).toFixed(1);
     st.textContent='动图已生成（'+mb+' MB），正在保存到相册…';
-    var data=await blobToDataURL(blob);
-    var r=await MT.saveImageToPhotosAlbum({filePath:data});
-    if(r&&r.errMsg&&/fail/i.test(r.errMsg)) throw r;
-    st.textContent='已保存动图到相册（'+mb+' MB）。';
+    await waitMT(IN_XHS?8000:0);
+    if(!MT || typeof MT.saveImageToPhotosAlbum!=='function') throw new Error('小红书接口未就绪（'+mtDiag()+'）');
+    var data=await blobToDataURL(blob), tried=[];
+    try{ var r=await MT.saveImageToPhotosAlbum({filePath:data});
+      if(r&&r.errMsg&&/fail/i.test(r.errMsg)) throw r;
+      st.textContent='已保存动图到相册（'+mb+' MB）。'; return }
+    catch(e){ tried.push(errText(e)) }
+    if(typeof MT.writeTempFile==='function'){
+      try{ var t=await MT.writeTempFile({data:data});
+        if(t&&t.filePath){ await MT.saveImageToPhotosAlbum({filePath:t.filePath});
+          st.textContent='已保存动图到相册（'+mb+' MB）。'; return } }
+      catch(e){ tried.push(errText(e)) }
+    }
+    throw new Error(tried.slice(-2).join(' / ')||'保存失败');
   }catch(e){ if(typeof grain0!=='undefined') S.grain=grain0; st.textContent='导出失败：'+errText(e) }
   exporting=false; $('mp4').disabled=false;
 }
