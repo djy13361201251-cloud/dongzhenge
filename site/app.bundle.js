@@ -1108,8 +1108,9 @@ function localDownload(name,blob){
   }catch(e){ return 'fail' }
 }
 async function saveFile(name,blob){
-  if(IN_XHS) await waitMT(15000);
+  if(IN_XHS) await waitMT(xhsVerNum()&&xhsVerNum()<946?1500:15000);
   if(!MT || typeof MT.saveImageToPhotosAlbum!=='function'){
+    if(IN_XHS&&xhsVerNum()&&xhsVerNum()<946) throw new Error('你的小红书是 '+xhsVer()+' 版，太旧了，存相册的接口要 9.46 以上才有。请在 App Store 更新小红书到最新版后再试。'+mtDiag());
     if(IN_XHS) throw new Error('小红书接口未就绪（'+mtDiag()+'）');
     var r=localDownload(name,blob);
     if(r==='local') return 'local';
@@ -1134,7 +1135,7 @@ const st=$('status'), prog=$('prog');
 function stamp(){const d=new Date(); return `${d.getMonth()+1}${String(d.getDate()).padStart(2,'0')}_${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}`}
 $('png').onclick=async()=>{st.textContent='正在生成图片…'; await loadFonts(); G.render(ctx,curT()); const blob=await new Promise(r=>cv.toBlob(r,'image/png')); try{const r=await saveFile(`动真格_${S.aspect.replace(':','x')}_${stamp()}.png`,blob); st.textContent=r==='saved'?'已导出当前帧。':(r==='local'?'已下载到本地（浏览器预览模式）。':'已取消保存。')}catch(e){st.textContent='导出失败：'+(e.message||e.code)}};
 $('mp4').onclick=async()=>{
-  if(exporting) return; await waitMT(IN_XHS?15000:0); if(IN_XHS) return exportGIF();
+  if(exporting) return; await waitMT(IN_XHS?(xhsVerNum()&&xhsVerNum()<946?1500:15000):0); if(IN_XHS) return exportGIF();
   if(!window.VideoEncoder){ return recordMP4() }
   await loadFonts(); exporting=true; $('mp4').disabled=true; prog.style.width='0%';
   try{
@@ -1241,8 +1242,8 @@ async function exportGIF(){
     var blob=gw.end(); prog.style.width='100%';
     var mb=(blob.size/1048576).toFixed(1);
     st.textContent='动图已生成（'+mb+' MB），正在保存到相册…';
-    await waitMT(IN_XHS?15000:0);
-    if(!MT || typeof MT.saveImageToPhotosAlbum!=='function') throw new Error('小红书接口未就绪（'+mtDiag()+'）');
+    await waitMT(IN_XHS?(xhsVerNum()&&xhsVerNum()<946?1500:15000):0);
+    if(!MT || typeof MT.saveImageToPhotosAlbum!=='function') throw new Error((IN_XHS&&xhsVerNum()&&xhsVerNum()<946?'你的小红书是 '+xhsVer()+' 版，太旧了，存相册的接口要 9.46 以上才有。请在 App Store 更新小红书到最新版后再试。':'小红书接口未就绪')+'（'+mtDiag()+'）');
     var data=await blobToDataURL(blob), tried=[];
     try{ var r=await MT.saveImageToPhotosAlbum({filePath:data});
       if(r&&r.errMsg&&/fail/i.test(r.errMsg)) throw r;
@@ -1317,6 +1318,9 @@ function mt(){ var m=window.xhs&&window.xhs.miniTool; if(m){ MT=m; IN_XHS=true; 
 function waitMT(ms){ ms=ms||15000; return new Promise(function(res){ var t0=Date.now();
   (function tick(){ if(mt()&&typeof MT.saveImageToPhotosAlbum==='function') return res(MT);
     if(Date.now()-t0>ms) return res(MT); setTimeout(tick,120) })() }) }
+// 从 UA 读小红书客户端版本（discovery/9.36）；低于 9.46 的客户端不会提供 window.xhs
+function xhsVer(){ var m=/discovery\/(\d+)\.(\d+)/i.exec(navigator.userAgent||''); return m?(m[1]+'.'+m[2]):'' }
+function xhsVerNum(){ var v=xhsVer(); if(!v) return 0; var a=v.split('.'); return (+a[0])*100+(+a[1]) }
 function mtDiag(){
   var x=window.xhs, k=[], hits=[];
   k.push(x?('window.xhs 存在'):'window.xhs 不存在');
@@ -1324,7 +1328,7 @@ function mtDiag(){
   if(x) k.push('xhs 字段:'+Object.keys(x).join(','));
   try{ for(var q in window){ if(/xhs|mini|bridge|native/i.test(q)) hits.push(q) } }catch(e){}
   k.push('全局可疑键:'+(hits.slice(0,8).join(',')||'无'));
-  k.push('UA:'+(navigator.userAgent||''));
+  var v=xhsVer(); if(v) k.push('小红书版本:'+v);
   return k.join(' | ')
 }
 function errText(e){ return (e&&(e.errMsg||e.message||e.code))||String(e) }

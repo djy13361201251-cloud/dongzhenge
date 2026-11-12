@@ -23,6 +23,9 @@ function mt(){ var m=window.xhs&&window.xhs.miniTool; if(m){ MT=m; IN_XHS=true; 
 function waitMT(ms){ ms=ms||15000; return new Promise(function(res){ var t0=Date.now();
   (function tick(){ if(mt()&&typeof MT.saveImageToPhotosAlbum==='function') return res(MT);
     if(Date.now()-t0>ms) return res(MT); setTimeout(tick,120) })() }) }
+// 从 UA 读小红书客户端版本（discovery/9.36）；低于 9.46 的客户端不会提供 window.xhs
+function xhsVer(){ var m=/discovery\/(\d+)\.(\d+)/i.exec(navigator.userAgent||''); return m?(m[1]+'.'+m[2]):'' }
+function xhsVerNum(){ var v=xhsVer(); if(!v) return 0; var a=v.split('.'); return (+a[0])*100+(+a[1]) }
 function mtDiag(){
   var x=window.xhs, k=[], hits=[];
   k.push(x?('window.xhs 存在'):'window.xhs 不存在');
@@ -30,7 +33,7 @@ function mtDiag(){
   if(x) k.push('xhs 字段:'+Object.keys(x).join(','));
   try{ for(var q in window){ if(/xhs|mini|bridge|native/i.test(q)) hits.push(q) } }catch(e){}
   k.push('全局可疑键:'+(hits.slice(0,8).join(',')||'无'));
-  k.push('UA:'+(navigator.userAgent||''));
+  var v=xhsVer(); if(v) k.push('小红书版本:'+v);
   return k.join(' | ')
 }
 function errText(e){ return (e&&(e.errMsg||e.message||e.code))||String(e) }
@@ -69,8 +72,9 @@ if(IN_XHS){ ['fileall','popFileAll'].forEach(function(id){ var e=document.getEle
         "  return 'saved';\n"
         "}",
         r"""async function saveFile(name,blob){
-  if(IN_XHS) await waitMT(15000);
+  if(IN_XHS) await waitMT(xhsVerNum()&&xhsVerNum()<946?1500:15000);
   if(!MT || typeof MT.saveImageToPhotosAlbum!=='function'){
+    if(IN_XHS&&xhsVerNum()&&xhsVerNum()<946) throw new Error('你的小红书是 '+xhsVer()+' 版，太旧了，存相册的接口要 9.46 以上才有。请在 App Store 更新小红书到最新版后再试。'+mtDiag());
     if(IN_XHS) throw new Error('小红书接口未就绪（'+mtDiag()+'）');
     var r=localDownload(name,blob);
     if(r==='local') return 'local';
@@ -101,7 +105,7 @@ if(IN_XHS){ ['fileall','popFileAll'].forEach(function(id){ var e=document.getEle
     # ---- MP4：VideoEncoder 不可用时退到 MediaRecorder
     js = must(
         "  if(exporting) return; if(!window.VideoEncoder){st.textContent='这个浏览器不支持逐帧编码，请换用 Chrome 或 Edge。'; return}",
-        "  if(exporting) return; await waitMT(IN_XHS?15000:0); if(IN_XHS) return exportGIF();\n"
+        "  if(exporting) return; await waitMT(IN_XHS?(xhsVerNum()&&xhsVerNum()<946?1500:15000):0); if(IN_XHS) return exportGIF();\n"
         "  if(!window.VideoEncoder){ return recordMP4() }",
         js, 'mp4 fallback entry')
     js = must("    const [W,H]=G.size(), fps=60, n=Math.round(S.dur*fps);",
@@ -201,8 +205,8 @@ async function exportGIF(){
     var blob=gw.end(); prog.style.width='100%';
     var mb=(blob.size/1048576).toFixed(1);
     st.textContent='动图已生成（'+mb+' MB），正在保存到相册…';
-    await waitMT(IN_XHS?15000:0);
-    if(!MT || typeof MT.saveImageToPhotosAlbum!=='function') throw new Error('小红书接口未就绪（'+mtDiag()+'）');
+    await waitMT(IN_XHS?(xhsVerNum()&&xhsVerNum()<946?1500:15000):0);
+    if(!MT || typeof MT.saveImageToPhotosAlbum!=='function') throw new Error((IN_XHS&&xhsVerNum()&&xhsVerNum()<946?'你的小红书是 '+xhsVer()+' 版，太旧了，存相册的接口要 9.46 以上才有。请在 App Store 更新小红书到最新版后再试。':'小红书接口未就绪')+'（'+mtDiag()+'）');
     var data=await blobToDataURL(blob), tried=[];
     try{ var r=await MT.saveImageToPhotosAlbum({filePath:data});
       if(r&&r.errMsg&&/fail/i.test(r.errMsg)) throw r;
